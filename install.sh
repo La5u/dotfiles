@@ -27,14 +27,14 @@ for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
 
 COPRS=(lionheartp/Hyprland scottames/ghostty)
 PACKAGES=(
-    hyprland hyprland-devel hyprland-guiutils hypridle hyprlock hyprsunset awww
+    hyprland hyprland-devel hyprland-guiutils hypridle hyprsunset awww
     waybar waypaper rofi dunst ghostty thunar firefox fcitx5
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
     gcc-c++ make pkgconf-pkg-config pixman-devel libdrm-devel pango-devel
     libinput-devel systemd-devel wayland-devel libxkbcommon-devel
-    pipx curl unzip fontconfig terminus-fonts-console
+    curl fontconfig terminus-fonts-console
 )
 CONSOLE_FONT=ter-132b
 FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/DejaVuSansMono.tar.xz"
@@ -55,11 +55,7 @@ install_packages() {
     say "Installing packages"
     sudo dnf install -y --skip-unavailable "${PACKAGES[@]}"
 
-    # Fallback if the COPR lacks waypaper. PyGObject has no aarch64 wheel, so reuse Fedora's.
-    if ! command -v waypaper >/dev/null; then
-        sudo dnf install -y python3-gobject gtk3
-        pipx install --system-site-packages waypaper || warn "Could not install waypaper"
-    fi
+    command -v waypaper >/dev/null || warn "waypaper not installed (missing from COPR?)"
 
     if ! command -v hyprshot >/dev/null; then
         say "Installing hyprshot"
