@@ -73,6 +73,14 @@ install_packages() {
         sudo dracut -f
     fi
 
+    if [[ -d /sys/class/power_supply/macsmc-battery ]] &&
+        ! cmp -s "$DOT/udev/99-charge-limit.rules" /etc/udev/rules.d/99-charge-limit.rules; then
+        say "Limiting battery charge to 80%"
+        sudo install -Dm 644 "$DOT/udev/99-charge-limit.rules" /etc/udev/rules.d/99-charge-limit.rules
+        sudo udevadm control --reload
+        sudo udevadm trigger --subsystem-match=power_supply --sysname-match=macsmc-battery
+    fi
+
     if ! fc-list | grep -q "DejaVuSansM Nerd Font"; then
         say "Installing DejaVuSansM Nerd Font"
         mkdir -p "$HOME/.local/share/fonts/DejaVuSansMNerd"

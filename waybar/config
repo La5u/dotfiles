@@ -11,21 +11,38 @@
     "modules-center": [],
     "modules-right": [
         "hyprland/language",
+        "group/toggles",
         "pulseaudio",
         "pulseaudio#microphone",
-        "custom/redlight",
-        "custom/webcam",
-        "temperature",
-        "backlight",
-        "custom/screen-off",
         "battery",
-        "custom/location",
         "network",
-        "custom/wifi-gaming",
         "bluetooth",
         "custom/notifications",
         "tray"
     ],
+    // Click the arrow to show or hide the less-used toggles, like the Windows tray.
+    "group/toggles": {
+        "orientation": "inherit",
+        "drawer": {
+            "click-to-reveal": true,
+            "transition-left-to-right": false,
+            "transition-duration": 200
+        },
+        "modules": [
+            "custom/toggles-arrow",
+            "custom/redlight",
+            "custom/webcam",
+            "custom/location",
+            "custom/wifi-gaming",
+            "backlight",
+            "temperature",
+            "custom/screen-off"
+        ]
+    },
+    "custom/toggles-arrow": {
+        "format": "󰅃",
+        "tooltip-format": "More toggles"
+    },
     "custom/redlight": {
   "exec": "~/.config/hypr/scripts/redlight.sh status",
   "signal": 8,
