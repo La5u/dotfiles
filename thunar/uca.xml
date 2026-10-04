@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>utilities-terminal</icon>
+	<name>Open Terminal Here</name>
+	<submenu></submenu>
+	<unique-id>1776180310872520-1</unique-id>
+	<command>ghostty --working-directory=%f</command>
+	<description>Open Ghostty in this folder</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon>package-x-generic</icon>
+	<name>Unzip Here</name>
+	<submenu></submenu>
+	<unique-id>1784400000000000-1</unique-id>
+	<command>sh -c 'exec "$HOME/.local/bin/thunar-unzip" "$@"' sh %F</command>
+	<description>Extract ZIP files into new folders here without overwriting existing files</description>
+	<range></range>
+	<patterns>*.zip;*.ZIP;*.Zip</patterns>
+	<startup-notify/>
+	<other-files/>
+</action>
+</actions>
