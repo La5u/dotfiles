@@ -16,6 +16,7 @@ hl.on("hyprland.start", function()
     -- hyprsunset is started on demand by scripts/redlight.sh
     hl.exec_cmd("waybar")
     hl.exec_cmd("hypridle")
+    hl.exec_cmd("refresh-on-power")
 end)
 
 hl.env("XCURSOR_SIZE", "20")
