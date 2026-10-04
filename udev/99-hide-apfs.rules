@@ -1,0 +1,3 @@
+# Hide macOS (APFS) partitions from file managers: Linux cannot mount them,
+# so clicking one only hangs or fails.
+SUBSYSTEM=="block", ENV{ID_FS_TYPE}=="apfs", ENV{UDISKS_IGNORE}="1"

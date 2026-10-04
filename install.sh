@@ -35,7 +35,7 @@ done
 COPRS=(lionheartp/Hyprland scottames/ghostty)
 FEDORA_PACKAGES=(
     hyprland hyprland-devel hyprland-guiutils hypridle hyprsunset awww
-    xdg-desktop-portal-hyprland
+    xdg-desktop-portal-hyprland hyprpolkitagent
     waybar waypaper rofi dunst ghostty thunar firefox mpv obs-studio
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
@@ -47,7 +47,7 @@ FEDORA_PACKAGES=(
 # Arch ships headers with the libraries, so no -devel packages are needed.
 ARCH_PACKAGES=(
     hyprland hyprland-guiutils hypridle hyprsunset awww
-    xdg-desktop-portal-hyprland
+    xdg-desktop-portal-hyprland hyprpolkitagent
     waybar rofi dunst ghostty thunar firefox mpv obs-studio hyprshot
     brightnessctl playerctl wireplumber pavucontrol blueman bluez bluez-utils
     networkmanager nm-connection-editor iw
@@ -130,6 +130,15 @@ install_packages() {
         sudo install -Dm 644 "$DOT/udev/99-charge-limit.rules" /etc/udev/rules.d/99-charge-limit.rules
         sudo udevadm control --reload
         sudo udevadm trigger --action=add --subsystem-match=power_supply
+    fi
+
+    # Only on machines with macOS partitions (Apple Silicon dual boot).
+    if lsblk -no FSTYPE | grep -qx apfs &&
+        ! cmp -s "$DOT/udev/99-hide-apfs.rules" /etc/udev/rules.d/99-hide-apfs.rules; then
+        say "Hiding macOS partitions from file managers"
+        sudo install -Dm 644 "$DOT/udev/99-hide-apfs.rules" /etc/udev/rules.d/99-hide-apfs.rules
+        sudo udevadm control --reload
+        sudo udevadm trigger --subsystem-match=block
     fi
 
     if ! fc-list | grep -q "DejaVuSansM Nerd Font"; then

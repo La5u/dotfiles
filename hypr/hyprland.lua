@@ -65,6 +65,8 @@ hl.on("hyprland.start", function()
     -- Start in the center of the 3x3 workspace grid.
     hl.exec_cmd("hyprctl dispatch 'hl.dsp.focus({ workspace = 5 })'")
     hl.exec_cmd("systemctl --user start hyprland-session.target")
+    -- Password prompts for apps that need admin rights (mounting drives, etc.).
+    hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("firefox")
     hl.exec_cmd("waypaper --restore")
     -- hyprsunset is started on demand by scripts/redlight.sh
