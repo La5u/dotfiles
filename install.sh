@@ -28,7 +28,7 @@ for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
 COPRS=(lionheartp/Hyprland scottames/ghostty)
 PACKAGES=(
     hyprland hyprland-devel hyprland-guiutils hypridle hyprlock hyprsunset awww
-    waybar rofi dunst ghostty thunar firefox fcitx5
+    waybar waypaper rofi dunst ghostty thunar firefox fcitx5
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
@@ -55,13 +55,17 @@ install_packages() {
     say "Installing packages"
     sudo dnf install -y --skip-unavailable "${PACKAGES[@]}"
 
-    command -v waypaper >/dev/null || pipx install waypaper
+    # Fallback if the COPR lacks waypaper. PyGObject has no aarch64 wheel, so reuse Fedora's.
+    if ! command -v waypaper >/dev/null; then
+        sudo dnf install -y python3-gobject gtk3
+        pipx install --system-site-packages waypaper || warn "Could not install waypaper"
+    fi
 
     if ! command -v hyprshot >/dev/null; then
         say "Installing hyprshot"
         mkdir -p "$HOME/.local/bin"
-        curl -fsSL "$HYPRSHOT_URL" -o "$HOME/.local/bin/hyprshot"
-        chmod +x "$HOME/.local/bin/hyprshot"
+        curl -fsSL "$HYPRSHOT_URL" -o "$HOME/.local/bin/hyprshot" &&
+            chmod +x "$HOME/.local/bin/hyprshot" || warn "Could not install hyprshot"
     fi
 
     # Large TTY font for the login prompt, also baked into the initramfs for early boot.
@@ -76,8 +80,8 @@ install_packages() {
     if ! fc-list | grep -q "DejaVuSansM Nerd Font"; then
         say "Installing DejaVuSansM Nerd Font"
         mkdir -p "$HOME/.local/share/fonts/DejaVuSansMNerd"
-        curl -fsSL "$FONT_URL" | tar -xJ -C "$HOME/.local/share/fonts/DejaVuSansMNerd"
-        fc-cache -f >/dev/null
+        curl -fsSL "$FONT_URL" | tar -xJ -C "$HOME/.local/share/fonts/DejaVuSansMNerd" &&
+            fc-cache -f >/dev/null || warn "Could not install DejaVuSansM Nerd Font"
     fi
 }
 
