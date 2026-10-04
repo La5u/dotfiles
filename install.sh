@@ -20,6 +20,7 @@ LINKS=(
     "rofi/config.rasi            .config/rofi/config.rasi"
     "systemd/online-notifier.service .config/systemd/user/online-notifier.service"
     "wallpapers                  Pictures/Wallpapers"
+    "shell/bash_profile          .bash_profile"
 )
 for f in "$DOT"/waybar/*.sh; do LINKS+=("waybar/${f##*/} .config/waybar/${f##*/}"); done
 for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
@@ -33,8 +34,9 @@ PACKAGES=(
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
     gcc-c++ make pkgconf-pkg-config pixman-devel libdrm-devel pango-devel
     libinput-devel systemd-devel wayland-devel libxkbcommon-devel
-    pipx curl unzip fontconfig
+    pipx curl unzip fontconfig terminus-fonts-console
 )
+CONSOLE_FONT=ter-132b
 FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/DejaVuSansMono.tar.xz"
 HYPRSHOT_URL="https://raw.githubusercontent.com/Gustash/Hyprshot/main/hyprshot"
 
@@ -60,6 +62,15 @@ install_packages() {
         mkdir -p "$HOME/.local/bin"
         curl -fsSL "$HYPRSHOT_URL" -o "$HOME/.local/bin/hyprshot"
         chmod +x "$HOME/.local/bin/hyprshot"
+    fi
+
+    # Large TTY font for the login prompt, also baked into the initramfs for early boot.
+    if ! grep -q "^FONT=$CONSOLE_FONT$" /etc/vconsole.conf 2>/dev/null; then
+        say "Setting console font $CONSOLE_FONT"
+        sudo sed -i '/^FONT=/d' /etc/vconsole.conf 2>/dev/null || true
+        echo "FONT=$CONSOLE_FONT" | sudo tee -a /etc/vconsole.conf >/dev/null
+        sudo systemctl restart systemd-vconsole-setup
+        sudo dracut -f
     fi
 
     if ! fc-list | grep -q "DejaVuSansM Nerd Font"; then

@@ -1,0 +1,14 @@
+#
+# ~/.bash_profile
+#
+
+[[ -f ~/.bashrc ]] && . ~/.bashrc
+
+# Logging in on the first TTY starts Hyprland.
+if [ -z "$WAYLAND_DISPLAY" ] && [ "$XDG_VTNR" = 1 ]; then
+  exec "$(command -v start-hyprland || echo Hyprland)"
+fi
+export QT_QPA_PLATFORMTHEME=qt6ct
+export PATH="$PATH:$HOME/.local/bin"
+
+command -v gnome-keyring-daemon >/dev/null && export $(gnome-keyring-daemon --start --components=secrets)
