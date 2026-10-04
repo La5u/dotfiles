@@ -34,7 +34,8 @@ function set_refresh_rate()
                     output = m.name,
                     mode = string.format("%dx%d@%.3f", best.width, best.height, best.refresh_rate),
                     position = "auto",
-                    scale = "auto",
+                    -- Keep the current scale, which local.lua may have set.
+                    scale = m.scale,
                 })
             end
         end
