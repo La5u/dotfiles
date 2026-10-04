@@ -17,6 +17,8 @@ LINKS=(
     "waypaper/config.ini         .config/waypaper/config.ini"
     "ghostty/config.ghostty      .config/ghostty/config.ghostty"
     "rofi/config.rasi            .config/rofi/config.rasi"
+    "thunar/uca.xml              .config/Thunar/uca.xml"
+    "hyprland-mimeapps.list      .config/hyprland-mimeapps.list"
     "systemd/online-notifier.service .config/systemd/user/online-notifier.service"
     "systemd/hyprland-session.target .config/systemd/user/hyprland-session.target"
     "wallpapers                  Pictures/Wallpapers"
@@ -36,7 +38,7 @@ COPRS=(lionheartp/Hyprland scottames/ghostty)
 FEDORA_PACKAGES=(
     hyprland hyprland-devel hyprland-guiutils hypridle hyprsunset awww
     xdg-desktop-portal-hyprland hyprpolkitagent
-    waybar waypaper rofi dunst ghostty thunar firefox mpv obs-studio
+    waybar waypaper rofi dunst ghostty thunar firefox unzip mpv obs-studio
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
@@ -48,7 +50,7 @@ FEDORA_PACKAGES=(
 ARCH_PACKAGES=(
     hyprland hyprland-guiutils hypridle hyprsunset awww
     xdg-desktop-portal-hyprland hyprpolkitagent
-    waybar rofi dunst ghostty thunar firefox mpv obs-studio hyprshot
+    waybar rofi dunst ghostty thunar firefox unzip mpv obs-studio hyprshot
     brightnessctl playerctl wireplumber pavucontrol blueman bluez bluez-utils
     networkmanager nm-connection-editor iw
     grim slurp wl-clipboard swappy imagemagick jq imv libnotify
@@ -196,4 +198,4 @@ systemctl --user daemon-reload
 systemctl --user enable --now online-notifier.service >/dev/null 2>&1 || warn "Could not enable online-notifier"
 
 [[ -d "$BACKUP" ]] && say "Replaced files are in $BACKUP"
-say "Done. Log in on a TTY and run: Hyprland"
+say "Done. Log in on TTY1 and Hyprland starts automatically."

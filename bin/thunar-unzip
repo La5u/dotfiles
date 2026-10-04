@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Extract each selected ZIP into a fresh sibling directory.
+set -u
+status=0
+for archive in "$@"; do
+    archive=$(realpath -- "$archive") || { status=1; continue; }
+    name=$(basename -- "$archive")
+    target="${archive%/*}/${name%.*}"
+    if ! mkdir -- "$target" 2>/dev/null; then
+        target=$(mktemp -d -- "${target}.XXXXXX") || { status=1; continue; }
+    fi
+    log=$(mktemp) || { status=1; continue; }
+    if unzip -n -- "$archive" -d "$target" >"$log" 2>&1; then
+        notify-send 'Unzip complete' "Extracted $name to $target" || true
+        rm -f -- "$log"
+    else
+        notify-send -u critical 'Unzip failed' "Could not fully extract $name. Details: $log" || true
+        status=1
+    fi
+done
+exit "$status"
