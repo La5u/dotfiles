@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# Switch the display refresh rate when the charger is plugged or unplugged.
-# The rates live in set_refresh_rate() in hypr/hosts/aarch64.lua.
-[[ -r /sys/class/power_supply/macsmc-ac/online ]] || exit 0
+# Re-pick the laptop panel's refresh rate when the charger is plugged or unplugged.
+# The rates are chosen by set_refresh_rate() in hypr/hyprland.lua.
+grep -sqx Battery /sys/class/power_supply/*/type || exit 0
 
-udevadm monitor --udev --subsystem-match=power_supply | while read -r line; do
-    [[ $line == *macsmc-ac* ]] && hyprctl eval 'set_refresh_rate()' >/dev/null
+last=""
+udevadm monitor --udev --subsystem-match=power_supply | while read -r _; do
+    now=$(grep -sx Discharging /sys/class/power_supply/*/status)
+    [[ $now == "$last" ]] && continue
+    last=$now
+    hyprctl eval 'set_refresh_rate()' >/dev/null
 done

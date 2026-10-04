@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEV="/sys/bus/usb/devices/3-4/authorized"
+# Find the USB webcam (video interface class 0e). Its interfaces vanish while it is
+# deauthorized, so remember the device path to be able to turn it back on.
+CACHE="${XDG_RUNTIME_DIR:-/tmp}/webcam-usb-device"
+DEV=""
+for class in /sys/bus/usb/devices/*:*/bInterfaceClass; do
+    if [[ -r $class && $(<"$class") == 0e ]]; then
+        iface=${class%/*}
+        DEV="${iface%%:*}/authorized"
+        printf '%s\n' "$DEV" >"$CACHE"
+        break
+    fi
+done
+[[ -z $DEV && -r $CACHE ]] && DEV=$(<"$CACHE")
 
-if [[ ! -r "$DEV" ]]; then
-    printf '{"text":"󱜷","alt":"unavailable","class":"off","tooltip":"Webcam unavailable"}\n'
+# No USB webcam (built-in cameras on some laptops are not USB): hide the module.
+if [[ -z $DEV || ! -r $DEV ]]; then
+    printf '{"text":""}\n'
     exit 0
 fi
 

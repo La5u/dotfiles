@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Set up the Hyprland 3x3 grid desktop from this repo.
-#   ./install.sh          packages (Fedora only), grid plugin, links
+#   ./install.sh          packages (Fedora or Arch), grid plugin, links
 #   ./install.sh --links  grid plugin and links only
 set -euo pipefail
 
@@ -11,7 +11,6 @@ BACKUP="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 LINKS=(
     "hypr/hyprland.lua           .config/hypr/hyprland.lua"
     "hypr/hypridle.conf          .config/hypr/hypridle.conf"
-    "hypr/hosts                  .config/hypr/hosts"
     "hypr/scripts/redlight.sh    .config/hypr/scripts/redlight.sh"
     "waybar/config               .config/waybar/config"
     "waybar/style.css            .config/waybar/style.css"
@@ -27,13 +26,16 @@ LINKS=(
 for f in "$DOT"/waybar/*.sh; do LINKS+=("waybar/${f##*/} .config/waybar/${f##*/}"); done
 for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
 # Betterfox user.js into the profile Firefox launches by default, if one exists yet.
-ff="$HOME/.config/mozilla/firefox"
-ff_profile=$(awk -F= '/^\[Install/{i=1} i&&/^Default=/{print $2; exit}' "$ff/profiles.ini" 2>/dev/null || true)
-[[ -n "$ff_profile" ]] && LINKS+=("firefox/user.js .config/mozilla/firefox/$ff_profile/user.js")
+# Newer Firefox keeps profiles under ~/.config/mozilla, older under ~/.mozilla.
+for ff in .config/mozilla/firefox .mozilla/firefox; do
+    ff_profile=$(awk -F= '/^\[Install/{i=1} i&&/^Default=/{print $2; exit}' "$HOME/$ff/profiles.ini" 2>/dev/null || true)
+    [[ -n "$ff_profile" ]] && { LINKS+=("firefox/user.js $ff/$ff_profile/user.js"); break; }
+done
 
 COPRS=(lionheartp/Hyprland scottames/ghostty)
-PACKAGES=(
+FEDORA_PACKAGES=(
     hyprland hyprland-devel hyprland-guiutils hypridle hyprsunset awww
+    xdg-desktop-portal-hyprland
     waybar waypaper rofi dunst ghostty thunar firefox mpv obs-studio
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
@@ -42,6 +44,18 @@ PACKAGES=(
     libinput-devel systemd-devel wayland-devel libxkbcommon-devel
     curl fontconfig terminus-fonts-console
 )
+# Arch ships headers with the libraries, so no -devel packages are needed.
+ARCH_PACKAGES=(
+    hyprland hyprland-guiutils hypridle hyprsunset awww
+    xdg-desktop-portal-hyprland
+    waybar rofi dunst ghostty thunar firefox mpv obs-studio hyprshot
+    brightnessctl playerctl wireplumber pavucontrol blueman bluez bluez-utils
+    networkmanager nm-connection-editor iw
+    grim slurp wl-clipboard swappy imagemagick jq imv libnotify
+    base-devel pkgconf pixman libdrm pango libinput systemd wayland libxkbcommon
+    curl fontconfig terminus-font
+)
+AUR_PACKAGES=(waypaper)
 CONSOLE_FONT=ter-132b
 FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/DejaVuSansMono.tar.xz"
 HYPRSHOT_URL="https://raw.githubusercontent.com/Gustash/Hyprshot/main/hyprshot"
@@ -49,25 +63,45 @@ HYPRSHOT_URL="https://raw.githubusercontent.com/Gustash/Hyprshot/main/hyprshot"
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
 
-install_packages() {
-    if ! command -v dnf >/dev/null; then
-        warn "dnf not found; skipping packages (use --links on non-Fedora systems)"
-        return
-    fi
+install_fedora() {
     say "Enabling COPRs: ${COPRS[*]}"
     sudo dnf install -y dnf-plugins-core
     for c in "${COPRS[@]}"; do sudo dnf copr enable -y "$c" || warn "COPR $c unavailable"; done
 
     say "Installing packages"
-    sudo dnf install -y --skip-unavailable "${PACKAGES[@]}"
-
-    command -v waypaper >/dev/null || warn "waypaper not installed (missing from COPR?)"
+    sudo dnf install -y --skip-unavailable "${FEDORA_PACKAGES[@]}"
 
     # Fedora ships an empty OpenH264 stub; OBS needs Cisco's real build to record H.264.
     if rpm -q noopenh264 >/dev/null 2>&1; then
         say "Installing Cisco OpenH264"
         sudo dnf swap -y noopenh264 openh264 || warn "Could not install OpenH264"
     fi
+}
+
+install_arch() {
+    say "Installing packages"
+    sudo pacman -S --needed --noconfirm "${ARCH_PACKAGES[@]}"
+
+    local aur
+    aur=$(command -v paru || command -v yay || true)
+    if [[ -n "$aur" ]]; then
+        "$aur" -S --needed --noconfirm "${AUR_PACKAGES[@]}" || warn "Could not install ${AUR_PACKAGES[*]} from the AUR"
+    else
+        warn "No AUR helper (paru or yay); install ${AUR_PACKAGES[*]} yourself"
+    fi
+}
+
+install_packages() {
+    if command -v dnf >/dev/null; then
+        install_fedora
+    elif command -v pacman >/dev/null; then
+        install_arch
+    else
+        warn "Neither dnf nor pacman found; install the packages yourself"
+        return
+    fi
+
+    command -v waypaper >/dev/null || warn "waypaper is not installed"
 
     if ! command -v hyprshot >/dev/null; then
         say "Installing hyprshot"
@@ -82,15 +116,20 @@ install_packages() {
         sudo sed -i '/^FONT=/d' /etc/vconsole.conf 2>/dev/null || true
         echo "FONT=$CONSOLE_FONT" | sudo tee -a /etc/vconsole.conf >/dev/null
         sudo systemctl restart systemd-vconsole-setup
-        sudo dracut -f
+        if command -v dracut >/dev/null; then
+            sudo dracut -f
+        elif command -v mkinitcpio >/dev/null; then
+            sudo mkinitcpio -P
+        fi
     fi
 
-    if [[ -d /sys/class/power_supply/macsmc-battery ]] &&
+    # Only on laptops whose battery driver supports a charge limit.
+    if compgen -G "/sys/class/power_supply/*/charge_control_end_threshold" >/dev/null &&
         ! cmp -s "$DOT/udev/99-charge-limit.rules" /etc/udev/rules.d/99-charge-limit.rules; then
         say "Limiting battery charge to 80%"
         sudo install -Dm 644 "$DOT/udev/99-charge-limit.rules" /etc/udev/rules.d/99-charge-limit.rules
         sudo udevadm control --reload
-        sudo udevadm trigger --subsystem-match=power_supply --sysname-match=macsmc-battery
+        sudo udevadm trigger --action=add --subsystem-match=power_supply
     fi
 
     if ! fc-list | grep -q "DejaVuSansM Nerd Font"; then
