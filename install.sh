@@ -34,7 +34,7 @@ ff_profile=$(awk -F= '/^\[Install/{i=1} i&&/^Default=/{print $2; exit}' "$ff/pro
 COPRS=(lionheartp/Hyprland scottames/ghostty)
 PACKAGES=(
     hyprland hyprland-devel hyprland-guiutils hypridle hyprsunset awww
-    waybar waypaper rofi dunst ghostty thunar firefox
+    waybar waypaper rofi dunst ghostty thunar firefox mpv obs-studio
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
@@ -62,6 +62,12 @@ install_packages() {
     sudo dnf install -y --skip-unavailable "${PACKAGES[@]}"
 
     command -v waypaper >/dev/null || warn "waypaper not installed (missing from COPR?)"
+
+    # Fedora ships an empty OpenH264 stub; OBS needs Cisco's real build to record H.264.
+    if rpm -q noopenh264 >/dev/null 2>&1; then
+        say "Installing Cisco OpenH264"
+        sudo dnf swap -y noopenh264 openh264 || warn "Could not install OpenH264"
+    fi
 
     if ! command -v hyprshot >/dev/null; then
         say "Installing hyprshot"
