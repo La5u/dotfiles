@@ -25,6 +25,10 @@ LINKS=(
 )
 for f in "$DOT"/waybar/*.sh; do LINKS+=("waybar/${f##*/} .config/waybar/${f##*/}"); done
 for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
+# Betterfox user.js into the profile Firefox launches by default, if one exists yet.
+ff="$HOME/.config/mozilla/firefox"
+ff_profile=$(awk -F= '/^\[Install/{i=1} i&&/^Default=/{print $2; exit}' "$ff/profiles.ini" 2>/dev/null || true)
+[[ -n "$ff_profile" ]] && LINKS+=("firefox/user.js .config/mozilla/firefox/$ff_profile/user.js")
 
 COPRS=(lionheartp/Hyprland scottames/ghostty)
 PACKAGES=(
