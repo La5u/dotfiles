@@ -19,6 +19,7 @@ LINKS=(
     "ghostty/config.ghostty      .config/ghostty/config.ghostty"
     "rofi/config.rasi            .config/rofi/config.rasi"
     "systemd/online-notifier.service .config/systemd/user/online-notifier.service"
+    "systemd/hyprland-session.target .config/systemd/user/hyprland-session.target"
     "wallpapers                  Pictures/Wallpapers"
     "shell/bash_profile          .bash_profile"
     "shell/prompt.sh             .bashrc.d/prompt.sh"

@@ -11,6 +11,7 @@ local main_mod = "SUPER"
 hl.plugin.load(os.getenv("HOME") .. "/.local/share/hypr/gridgestures.so")
 
 hl.on("hyprland.start", function()
+    hl.exec_cmd("systemctl --user start hyprland-session.target")
     hl.exec_cmd("firefox")
     hl.exec_cmd("waypaper --restore")
     -- hyprsunset is started on demand by scripts/redlight.sh

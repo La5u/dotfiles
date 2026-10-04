@@ -1,0 +1,8 @@
+# Started by Hyprland at login. Hyprland is launched from a TTY with no
+# display manager, so nothing else activates graphical-session.target,
+# and services that need it (like the screen-sharing portal) refuse to start.
+[Unit]
+Description=Hyprland session
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
