@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# On-demand graphical NetworkManager Wi-Fi picker for Waybar.
+set -u
+
+rofi_menu=(rofi -dmenu -i -p "Wi-Fi")
+show_error() { rofi -e "$1" >/dev/null 2>&1 || true; }
+
+notification_dir="${XDG_CONFIG_HOME:-$HOME/.config}/online-notifier"
+notification_flag="$notification_dir/disabled"
+if [ -e "$notification_flag" ]; then
+    notification_action="Enable connection notifications"
+else
+    notification_action="Disable connection notifications"
+fi
+
+toggle_notifications() {
+    if [ -e "$notification_flag" ]; then
+        rm -f "$notification_flag"
+    else
+        mkdir -p "$notification_dir"
+        touch "$notification_flag"
+    fi
+}
+
+if [ "$(nmcli -t -f WIFI general)" != "enabled" ]; then
+    choice=$(printf 'Enable Wi-Fi\n%s\n' "$notification_action" | "${rofi_menu[@]}") || exit 0
+    case "$choice" in
+        "Enable Wi-Fi") nmcli radio wifi on ;;
+        "$notification_action") toggle_notifications ;;
+    esac
+    exit $?
+fi
+
+# Ask NetworkManager for a fresh scan and create one entry per SSID.
+nmcli device wifi rescan >/dev/null 2>&1 || true
+sleep 1
+
+declare -a labels ssids
+declare -A seen
+while IFS=: read -r active signal security ssid; do
+    [ -n "$ssid" ] || continue
+    [ -z "${seen[$ssid]+x}" ] || continue
+    seen[$ssid]=1
+    marker=" "
+    [ "$active" = "*" ] && marker="●"
+    [ -n "$security" ] || security="open"
+    labels+=("$(printf '%s %3s%%  %-12s  %s' "$marker" "$signal" "$security" "$ssid")")
+    ssids+=("$ssid")
+done < <(nmcli -t --escape no -f IN-USE,SIGNAL,SECURITY,SSID device wifi list)
+
+menu=$(printf 'Disconnect\nDisable Wi-Fi\n%s\n' "$notification_action"; printf '%s\n' "${labels[@]}")
+choice=$(printf '%s' "$menu" | "${rofi_menu[@]}") || exit 0
+
+case "$choice" in
+    Disconnect)
+        nmcli device disconnect "$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2=="wifi"{print $1; exit}')" >/dev/null || show_error "Could not disconnect Wi-Fi"
+        exit
+        ;;
+    "Disable Wi-Fi")
+        nmcli radio wifi off
+        exit
+        ;;
+    "$notification_action")
+        toggle_notifications
+        exit
+        ;;
+esac
+
+ssid=""
+for i in "${!labels[@]}"; do
+    if [ "$choice" = "${labels[$i]}" ]; then
+        ssid="${ssids[$i]}"
+        break
+    fi
+done
+[ -n "$ssid" ] || exit 0
+
+# Saved and open networks normally connect without prompting.
+if output=$(nmcli --wait 20 device wifi connect "$ssid" 2>&1); then
+    exit 0
+fi
+
+# For a new protected network, request the secret graphically and pass it to
+# nmcli over stdin so it is not exposed in the process command line.
+password=$(rofi -dmenu -password -p "Password for $ssid") || exit 0
+[ -n "$password" ] || exit 0
+if ! output=$(printf '%s\n' "$password" | nmcli --ask --wait 25 device wifi connect "$ssid" 2>&1); then
+    show_error "Could not connect to $ssid\n\n$output"
+    exit 1
+fi

@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+# Notify when internet connectivity is lost or restored. Do not send job-control
+# signals to interactive applications: stopping Pi itself also stops its TUI and
+# lets terminal input accumulate, which can corrupt rendering/input on resume.
+readonly CHECK_HOST="1.1.1.1"
+readonly CHECK_INTERVAL=1
+readonly FAILURE_THRESHOLD=2
+readonly DISABLED_FLAG="${XDG_CONFIG_HOME:-$HOME/.config}/online-notifier/disabled"
+
+state="unknown"
+failures=0
+offline_since=0
+
+while true; do
+    # The Waybar Wi-Fi menu controls this preference. Reset our state while
+    # muted so enabling notifications never emits a stale on/off event.
+    if [[ -e "$DISABLED_FLAG" ]]; then
+        state="unknown"
+        failures=0
+        offline_since=0
+        sleep "$CHECK_INTERVAL"
+        continue
+    fi
+
+    if ping -n -c 1 -W 1 "$CHECK_HOST" >/dev/null 2>&1; then
+        if [[ "$state" == "offline" ]]; then
+            now=$(date +%s)
+            downtime=$((now - offline_since))
+            if (( downtime >= 60 )); then
+                duration="$((downtime / 60)) min"
+            else
+                duration="${downtime} sec"
+            fi
+            notify-send --app-name="Internet monitor" \
+                --icon=network-transmit-receive \
+                "Back online" "Internet connection restored after ${duration}."
+        fi
+        state="online"
+        failures=0
+    else
+        (( failures == 0 )) && offline_since=$(date +%s)
+        ((failures++))
+
+        if (( failures >= FAILURE_THRESHOLD )) && [[ "$state" != "offline" ]]; then
+            state="offline"
+            notify-send --app-name="Internet monitor" \
+                --urgency=normal \
+                --expire-time=5000 \
+                --transient \
+                --icon=network-offline \
+                "You're offline" "Pi remains interactive and will retry transient network failures."
+        fi
+    fi
+
+    sleep "$CHECK_INTERVAL"
+done

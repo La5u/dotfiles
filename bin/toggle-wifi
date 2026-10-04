@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$(LC_ALL=C nmcli radio wifi)" == "enabled" ]]; then
+    nmcli radio wifi off
+else
+    nmcli radio wifi on
+fi

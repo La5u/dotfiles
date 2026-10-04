@@ -1,0 +1,2 @@
+# Blinking redraws every terminal ~2x/sec; steady cursor saves power.
+cursor-style-blink = false

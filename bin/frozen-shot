@@ -1,0 +1,22 @@
+#!/bin/bash
+
+scale=$(hyprctl monitors -j | jq -r '.[0].scale')
+
+grim - | wl-copy --type image/png
+
+g=$(slurp)
+read xy wh <<< "$g"
+
+x=${xy%,*}
+y=${xy#*,}
+w=${wh%x*}
+h=${wh#*x}
+
+x=$(awk "BEGIN {printf \"%d\", $x * $scale}")
+y=$(awk "BEGIN {printf \"%d\", $y * $scale}")
+w=$(awk "BEGIN {printf \"%d\", $w * $scale}")
+h=$(awk "BEGIN {printf \"%d\", $h * $scale}")
+
+wl-paste --type image/png | \
+magick png:- -crop "${w}x${h}+${x}+${y}" +repage \
+"$HOME/Pictures/Screenshots/$(date +'%Y-%m-%d_%H-%M-%S').png"

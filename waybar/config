@@ -1,0 +1,293 @@
+// -*- mode: jsonc -*-
+{
+    "layer": "overlay", // Waybar at top layer
+    "exclusive": false, // so it is on top of other windows, not seperate.
+    "position": "bottom", // Waybar position (top|bottom|left|right)
+    "height": 25, // Waybar height (to be removed for auto height)
+    // "width": 1280, // Waybar width
+    "spacing": 5, // Gaps between modules (4px)
+    // Choose the order of the modules
+    "modules-left": ["hyprland/workspaces", "clock", "hyprland/mode", "hyprland/scratchpad"],
+    "modules-center": [],
+    "modules-right": [
+        "hyprland/language",
+        "pulseaudio",
+        "pulseaudio#microphone",
+        "custom/redlight",
+        "custom/webcam",
+        "temperature",
+        "backlight",
+        "custom/screen-off",
+        "battery",
+        "custom/location",
+        "network",
+        "custom/wifi-gaming",
+        "bluetooth",
+        "custom/notifications",
+        "tray"
+    ],
+    "custom/redlight": {
+  "exec": "~/.config/hypr/scripts/redlight.sh status",
+  "signal": 8,
+  "exec-on-event": true,
+  "format": "{}",
+  "on-click": "~/.config/hypr/scripts/redlight.sh toggle",
+  "on-scroll-up": "~/.config/hypr/scripts/redlight.sh up",
+  "on-scroll-down": "~/.config/hypr/scripts/redlight.sh down",
+  "on-click-right": "~/.config/hypr/scripts/redlight.sh menu",
+  "on-click-middle": "~/.config/hypr/scripts/redlight.sh reset"
+},
+    "custom/webcam": {
+        "exec": "$HOME/.config/waybar/webcam-toggle.sh --status",
+        "signal": 8,
+        "exec-on-event": true,
+        "return-type": "json",
+        "on-click": "$HOME/.config/waybar/webcam-toggle.sh --toggle",
+        "format": "{}"
+    },
+    "custom/location": {
+        "exec": "$HOME/.config/waybar/location-toggle.sh --status",
+        "signal": 8,
+        "exec-on-event": true,
+        "return-type": "json",
+        "on-click": "$HOME/.config/waybar/location-toggle.sh --toggle",
+        "format": "{}"
+    },
+    "custom/wifi-gaming": {
+        "exec": "$HOME/.config/waybar/wifi-gaming-toggle.sh --status",
+        "signal": 8,
+        "exec-on-event": true,
+        "return-type": "json",
+        "on-click": "$HOME/.config/waybar/wifi-gaming-toggle.sh --toggle",
+        "format": "{}"
+    },
+    "custom/screen-off": {
+        "format": "󰶐",
+        "tooltip-format": "Turn screen off (agents keep running; move mouse to wake)",
+        "on-click": "$HOME/.config/waybar/screen-off.sh"
+    },
+    "custom/notifications": {
+        "exec": "$HOME/.config/waybar/notifications.sh",
+        "interval": 60,
+        "signal": 8,
+        "exec-on-event": true,
+        "return-type": "json",
+        "format": "{}",
+        "on-click": "$HOME/.config/waybar/notifications.sh toggle"
+    },
+    // Modules configuration
+    "hyprland/workspaces": {
+        "active-only": true,
+        "format": "{icon}",
+        "format-icons": {
+            "1": "↖",
+            "2": "↑",
+            "3": "↗",
+            "4": "←",
+            "5": "<span size=\"smaller\"> </span>",
+            "6": "→",
+            "7": "↙",
+            "8": "↓",
+            "9": "↘",
+            "default": "●"
+        }
+    },
+    // "sway/workspaces": {
+    //     "disable-scroll": true,
+    //     "all-outputs": true,
+    //     "warp-on-scroll": false,
+    //     "format": "{name}: {icon}",
+    //     "format-icons": {
+    //         "1": "",
+    //         "2": "",
+    //         "3": "",
+    //         "4": "",
+    //         "5": "",
+    //         "urgent": "",
+    //         "focused": "",
+    //         "default": ""
+    //     }
+    // },
+    "keyboard-state": {
+        "numlock": true,
+        "capslock": true,
+        "format": "{name} {icon}",
+        "format-icons": {
+            "locked": "",
+            "unlocked": ""
+        }
+    },
+    "hyprland/language": {
+	    "format": "{short}"
+	},
+
+
+    "mpd": {
+        "format": "{stateIcon} {consumeIcon}{randomIcon}{repeatIcon}{singleIcon}{artist} - {album} - {title} ({elapsedTime:%M:%S}/{totalTime:%M:%S}) ⸨{songPosition}|{queueLength}⸩ {volume}% ",
+        "format-disconnected": "Disconnected ",
+        "format-stopped": "{consumeIcon}{randomIcon}{repeatIcon}{singleIcon}Stopped ",
+        "unknown-tag": "N/A",
+        "interval": 5,
+        "consume-icons": {
+            "on": " "
+        },
+        "random-icons": {
+            "off": "<span color=\"#f53c3c\"></span> ",
+            "on": " "
+        },
+        "repeat-icons": {
+            "on": " "
+        },
+        "single-icons": {
+            "on": "1 "
+        },
+        "state-icons": {
+            "paused": "",
+            "playing": ""
+        },
+        "tooltip-format": "MPD (connected)",
+        "tooltip-format-disconnected": "MPD (disconnected)"
+    },
+    "idle_inhibitor": {
+        "format": "{icon}",
+        "format-icons": {
+            "activated": "",
+            "deactivated": ""
+        }
+    },
+    "tray": {
+        // "icon-size": 21,
+        "spacing": 5,
+        // "icons": {
+        //   "blueman": "bluetooth",
+        //   "TelegramDesktop": "$HOME/.local/share/icons/hicolor/16x16/apps/telegram.png"
+        // }
+    },
+    "clock": {
+        // "timezone": "America/New_York",
+	"format": "{:%d.%m | %H:%M}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+    },
+    "cpu": {
+        "format": "{usage}% ",
+        "tooltip": false
+    },
+
+    "temperature": {
+        "interval": 30,
+        "critical-threshold": 70,
+        "format": "",
+        "format-critical": "{temperatureC}°C",
+        "hide-empty-text": true
+    },
+    "backlight": {
+        // "device": "acpi_video1",
+        "format": "{icon}",
+        "format-icons": ["", "", "", "", "", "", "", "", ""]
+    },
+    "battery": {
+        "states": {
+            // "good": 95,
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{capacity}% {icon}",
+        "format-full": "{capacity}% {icon}",
+        "format-charging": "{capacity}% 󰂄",
+        "format-plugged": "{capacity}% 󰚥",
+        "format-alt": "{time} {icon}",
+        // "format-good": "", // An empty format will hide the module
+        // "format-full": "",
+        "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+    },
+    "power-profiles-daemon": {
+      "format": "{icon}",
+      "tooltip-format": "Power profile: {profile}\nDriver: {driver}",
+      "tooltip": true,
+      "format-icons": {
+        "default": "",
+        "performance": "",
+        "balanced": "",
+        "power-saver": ""
+      }
+    },
+    "bluetooth": {
+        "format": "",
+        "format-disabled": "󰂲",
+        "format-off": "󰂲",
+        "format-on": "",
+        "format-connected": "󰂱",
+        "tooltip-format": "Bluetooth: {status}",
+        "tooltip-format-connected": "{device_enumerate}",
+        "tooltip-format-enumerate-connected": "{device_alias}",
+        "on-click": "$HOME/.local/bin/toggle-bluetooth",
+        "on-click-right": "blueman-manager"
+    },
+    "network": {
+        "interval": 30,
+        // Icon fills up as Wi-Fi signal strength increases.
+        "format-wifi": "{icon}",
+        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+        "format-ethernet": "󰈀",
+        "format-linked": "󰈀",
+        "format-disconnected": "󰤭",
+        "tooltip-format-wifi": "{essid} ({signalStrength}%)",
+        "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
+        "tooltip-format-disconnected": "Wi-Fi disconnected",
+        "on-click": "$HOME/.local/bin/toggle-wifi",
+        "on-click-right": "$HOME/.local/bin/rofi-wifi",
+        "on-click-middle": "nm-connection-editor"
+    },
+    "pulseaudio": {
+        "format": "{volume}% {icon}",
+        "format-bluetooth": "{volume}% {icon} ",
+        "format-bluetooth-muted": "󰝟 ",
+        "format-muted": "󰝟",
+        "format-icons": {
+            "headphone": "",
+            "hands-free": "",
+            "headset": "",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["", "", ""]
+        },
+        "on-click": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
+        "on-click-right": "pavucontrol",
+        "on-scroll-up": "pactl set-sink-volume @DEFAULT_SINK@ -1%",
+        "on-scroll-down": "pactl set-sink-volume @DEFAULT_SINK@ +1%"
+    },
+    "pulseaudio#microphone": {
+        "format": "{format_source}",
+        "format-source": "{volume}% ",
+        "format-source-muted": "",
+        "on-click": "pactl set-source-mute @DEFAULT_SOURCE@ toggle",
+        "on-click-right": "pavucontrol",
+        "on-scroll-up": "pactl set-source-volume @DEFAULT_SOURCE@ -1%",
+        "on-scroll-down": "pactl set-source-volume @DEFAULT_SOURCE@ +1%"
+    },
+    "custom/media": {
+        "format": "{icon} {text}",
+        "return-type": "json",
+        "max-length": 40,
+        "format-icons": {
+            "spotify": "",
+            "default": "🎜"
+        },
+        "escape": true,
+        "exec": "$HOME/.config/waybar/mediaplayer.py 2> /dev/null" // Script in resources folder
+        // "exec": "$HOME/.config/waybar/mediaplayer.py --player spotify 2> /dev/null" // Filter player based on name
+    },
+    "custom/power": {
+        "format" : "⏻ ",
+		"tooltip": false,
+		"menu": "on-click",
+		"menu-file": "$HOME/.config/waybar/power_menu.xml", // Menu file in resources folder
+		"menu-actions": {
+			"shutdown": "shutdown",
+			"reboot": "reboot",
+			"suspend": "systemctl suspend",
+			"hibernate": "systemctl hibernate"
+		}
+    }
+}

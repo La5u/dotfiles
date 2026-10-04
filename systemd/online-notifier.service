@@ -1,0 +1,12 @@
+[Unit]
+Description=Notify when internet connectivity returns
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/online-notifier
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
