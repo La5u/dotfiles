@@ -28,7 +28,7 @@ for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
 COPRS=(lionheartp/Hyprland scottames/ghostty)
 PACKAGES=(
     hyprland hyprland-devel hyprland-guiutils hypridle hyprsunset awww
-    waybar waypaper rofi dunst ghostty thunar firefox fcitx5
+    waybar waypaper rofi dunst ghostty thunar firefox
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
