@@ -1,6 +1,56 @@
--- Machine-specific monitors, devices and keys live in hosts/<arch>.lua.
-local arch = io.popen("uname -m"):read("l")
-require("hosts." .. arch)
+-- Every monitor at its native resolution and automatic scale, placed left to right.
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+
+-- True when a battery is discharging; desktops and plugged-in laptops count as AC.
+local function on_battery()
+    local p = io.popen("grep -sqx Discharging /sys/class/power_supply/*/status && echo yes")
+    local r = p:read("l")
+    p:close()
+    return r == "yes"
+end
+
+-- Laptop panels run at the mode closest to 60 Hz on battery and at their fastest
+-- mode on AC, always at native resolution. External monitors keep their default.
+-- Also called by bin/refresh-on-power when the charger is plugged or unplugged.
+function set_refresh_rate()
+    local battery = on_battery()
+    for _, m in ipairs(hl.get_monitors()) do
+        if m.name:match("^eDP") or m.name:match("^LVDS") or m.name:match("^DSI") then
+            local native
+            for _, mode in ipairs(m.available_modes) do
+                if mode.preferred then native = mode end
+            end
+            local best
+            for _, mode in ipairs(m.available_modes) do
+                if native and mode.width == native.width and mode.height == native.height then
+                    local better = not best
+                        or (battery and math.abs(mode.refresh_rate - 60) < math.abs(best.refresh_rate - 60))
+                        or (not battery and mode.refresh_rate > best.refresh_rate)
+                    if better then best = mode end
+                end
+            end
+            if best and math.abs(best.refresh_rate - m.refresh_rate) > 0.5 then
+                hl.monitor({
+                    output = m.name,
+                    mode = string.format("%dx%d@%.3f", best.width, best.height, best.refresh_rate),
+                    position = "auto",
+                    scale = "auto",
+                })
+            end
+        end
+    end
+end
+hl.on("monitor.added", set_refresh_rate)
+hl.on("config.reloaded", set_refresh_rate)
+
+-- Per-machine tweaks (extra monitors, mice, one-off binds) go in local.lua,
+-- which is not part of the dotfiles.
+local local_config = os.getenv("HOME") .. "/.config/hypr/local.lua"
+local fh = io.open(local_config)
+if fh then
+    fh:close()
+    dofile(local_config)
+end
 
 local terminal = "ghostty"
 local file_manager = "thunar"
@@ -11,6 +61,9 @@ local main_mod = "SUPER"
 hl.plugin.load(os.getenv("HOME") .. "/.local/share/hypr/gridgestures.so")
 
 hl.on("hyprland.start", function()
+    set_refresh_rate()
+    -- Start in the center of the 3x3 workspace grid.
+    hl.exec_cmd("hyprctl dispatch 'hl.dsp.focus({ workspace = 5 })'")
     hl.exec_cmd("systemctl --user start hyprland-session.target")
     hl.exec_cmd("firefox")
     hl.exec_cmd("waypaper --restore")
@@ -132,6 +185,9 @@ hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_
 hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
 hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true })
 hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, repeating = true })
+
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), { locked = true, repeating = true })
 
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
 hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
