@@ -12,11 +12,11 @@ read_temperature() {
 
 if [[ ${1:-status} == status ]]; then
     if ! temp=$(read_temperature); then
-        printf '󱓤\n'
+        printf '󰹏\n'
     elif (( temp < 6500 )); then
-        printf ' %sK\n' "$temp"
+        printf '󱩌 %sK\n' "$temp"
     else
-        printf '󱓤\n'
+        printf '󰹏\n'
     fi
     exit 0
 fi
@@ -80,5 +80,7 @@ else
     # Night light off: restore neutral colors and stop hyprsunset instead of idling at 6500K.
     hyprctl hyprsunset identity >/dev/null 2>&1 || true
     pkill -x hyprsunset || true
+    # Wait for it to exit, or the refresh below still reads the old temperature.
+    for ((i=0; i<20; i++)); do pgrep -x hyprsunset >/dev/null || break; sleep 0.05; done
 fi
 pkill -RTMIN+8 -x waybar || true
