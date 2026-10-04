@@ -21,6 +21,7 @@ LINKS=(
     "systemd/online-notifier.service .config/systemd/user/online-notifier.service"
     "wallpapers                  Pictures/Wallpapers"
     "shell/bash_profile          .bash_profile"
+    "shell/prompt.sh             .bashrc.d/prompt.sh"
 )
 for f in "$DOT"/waybar/*.sh; do LINKS+=("waybar/${f##*/} .config/waybar/${f##*/}"); done
 for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
