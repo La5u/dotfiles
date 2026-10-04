@@ -26,7 +26,7 @@ for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
 
 COPRS=(lionheartp/Hyprland scottames/ghostty)
 PACKAGES=(
-    hyprland hyprland-devel hypridle hyprlock hyprsunset awww
+    hyprland hyprland-devel hyprland-guiutils hypridle hyprlock hyprsunset awww
     waybar rofi dunst ghostty thunar firefox fcitx5
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
@@ -83,9 +83,8 @@ check_hyprland() {
 
 build_plugin() {
     say "Building GridGestures plugin"
-    make -C "$DOT/gridgestures" -s
-    mkdir -p "$HOME/.local/share/hypr"
-    install -m 755 "$DOT/gridgestures/gridgestures.so" "$HOME/.local/share/hypr/gridgestures.so"
+    make -C "$DOT/gridgestures" -s &&
+        install -Dm 755 "$DOT/gridgestures/gridgestures.so" "$HOME/.local/share/hypr/gridgestures.so"
 }
 
 link() {
@@ -101,19 +100,18 @@ link() {
     echo "  linked ~/$2"
 }
 
-[[ "${1:-}" == "--links" ]] || install_packages
-
-if check_hyprland; then
-    build_plugin
-else
-    warn "Skipping the grid plugin; rerun ./install.sh --links after fixing Hyprland"
-fi
-
 say "Linking configs"
 for entry in "${LINKS[@]}"; do
     read -r src dst <<<"$entry"
     link "$src" "$dst"
 done
+
+[[ "${1:-}" == "--links" ]] || install_packages
+
+# The grid plugin is optional: without it everything works except swipe gestures.
+if ! { check_hyprland && build_plugin; }; then
+    warn "Grid plugin not built; fix the error above, then rerun ./install.sh --links"
+fi
 
 systemctl --user daemon-reload
 systemctl --user enable --now online-notifier.service >/dev/null 2>&1 || warn "Could not enable online-notifier"
