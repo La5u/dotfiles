@@ -10,9 +10,9 @@ is_disabled() {
 
 status() {
     if is_disabled; then
-        printf '{"text":"󰍎","class":"off","tooltip":"Location access disabled — click to enable"}\n'
+        printf '{"text":"󰍑","class":"off","tooltip":"Location access disabled — click to enable"}\n'
     else
-        printf '{"text":"","class":"on","tooltip":"Location access enabled — click to disable"}\n'
+        printf '{"text":"󰍎","class":"on","tooltip":"Location access enabled — click to disable"}\n'
     fi
 }
 

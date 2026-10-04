@@ -8,7 +8,7 @@ NM_CONF=/etc/NetworkManager/conf.d/wifi-powersave.conf
 IFACE=$(iw dev | awk '/Interface/{print $2; exit}')
 
 if [[ -z "$IFACE" ]]; then
-    printf '{"text":"","alt":"unavailable","class":"off","tooltip":"Wi-Fi unavailable"}\n'
+    printf '{"text":"󰖻","alt":"unavailable","class":"off","tooltip":"Wi-Fi unavailable"}\n'
     exit 0
 fi
 
@@ -30,7 +30,7 @@ if [[ "${1:---status}" == "--toggle" ]]; then
 fi
 
 if [[ "$ps" == "off" ]]; then
-    printf '{"text":"","alt":"on","class":"on","tooltip":"Gaming mode: on, Wi-Fi power saving off (click to save power)"}\n'
+    printf '{"text":"󰖺","alt":"on","class":"on","tooltip":"Gaming mode: on, Wi-Fi power saving off (click to save power)"}\n'
 else
-    printf '{"text":"","alt":"off","class":"off","tooltip":"Gaming mode: off, Wi-Fi power saving on (click for low latency)"}\n'
+    printf '{"text":"󰖻","alt":"off","class":"off","tooltip":"Gaming mode: off, Wi-Fi power saving on (click for low latency)"}\n'
 fi

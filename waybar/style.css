@@ -10,7 +10,9 @@
 }
 
 #waybar {
-    font-family: sans serif;
+    /* Text in sans-serif; icons fall back to the Propo Nerd Font, whose
+       glyphs get their full width instead of being clipped to one cell. */
+    font-family: sans-serif, "DejaVuSansM Nerd Font Propo";
     font-size: 15px;
     background-color: rgba(0, 0, 0, 0);
     }
@@ -48,27 +50,13 @@
 
 }
 
+/* One colour for every toggle; a crossed-out icon means off. */
 #custom-notifications,
 #custom-webcam,
 #custom-wifi-gaming,
 #custom-screen-off,
 #custom-location {
-    font-family: "DejaVuSansM Nerd Font", monospace;
     padding: 0 4px;
-}
-
-#custom-webcam.on,
-#custom-wifi-gaming.on,
-#custom-location.on {
-    color: #a6e3a1;
-}
-
-#custom-notifications.paused,
-#custom-notifications.unavailable,
-#custom-webcam.off,
-#custom-wifi-gaming.off,
-#custom-location.off {
-    color: #6c7086;
 }
 
 #workspaces {

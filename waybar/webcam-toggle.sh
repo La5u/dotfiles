@@ -4,7 +4,7 @@ set -euo pipefail
 DEV="/sys/bus/usb/devices/3-4/authorized"
 
 if [[ ! -r "$DEV" ]]; then
-    printf '{"text":"󰄀","alt":"unavailable","class":"off","tooltip":"Webcam unavailable"}\n'
+    printf '{"text":"󱜷","alt":"unavailable","class":"off","tooltip":"Webcam unavailable"}\n'
     exit 0
 fi
 
@@ -19,7 +19,7 @@ if [[ "${1:---status}" == "--toggle" ]]; then
 fi
 
 if [[ "$state" == "1" ]]; then
-    printf '{"text":"","alt":"on","class":"on","tooltip":"Webcam: on (click to disable)"}\n'
+    printf '{"text":"󰖠","alt":"on","class":"on","tooltip":"Webcam: on (click to disable)"}\n'
 else
-    printf '{"text":"󰄀","alt":"off","class":"off","tooltip":"Webcam: off (click to enable)"}\n'
+    printf '{"text":"󱜷","alt":"off","class":"off","tooltip":"Webcam: off (click to enable)"}\n'
 fi
