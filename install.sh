@@ -36,31 +36,32 @@ done
 
 COPRS=(lionheartp/Hyprland scottames/ghostty)
 FEDORA_PACKAGES=(
-    hyprland hyprland-devel hyprland-guiutils hypridle hyprsunset awww
+    hyprland hyprland-devel hyprgraphics-devel hyprland-guiutils hypridle hyprsunset
     xdg-desktop-portal-hyprland hyprpolkitagent
     waybar waypaper rofi dunst ghostty thunar firefox unzip mpv obs-studio
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
-    gcc-c++ make pkgconf-pkg-config pixman-devel libdrm-devel pango-devel
+    git gcc-c++ make pkgconf-pkg-config pixman-devel libdrm-devel pango-devel
     libinput-devel systemd-devel wayland-devel libxkbcommon-devel
     curl fontconfig terminus-fonts-console
 )
 # Arch ships headers with the libraries, so no -devel packages are needed.
 ARCH_PACKAGES=(
-    hyprland hyprland-guiutils hypridle hyprsunset awww
+    hyprland hyprland-guiutils hypridle hyprsunset
     xdg-desktop-portal-hyprland hyprpolkitagent
     waybar rofi dunst ghostty thunar firefox unzip mpv obs-studio hyprshot
     brightnessctl playerctl wireplumber pavucontrol blueman bluez bluez-utils
     networkmanager nm-connection-editor iw
     grim slurp wl-clipboard swappy imagemagick jq imv libnotify
-    base-devel pkgconf pixman libdrm pango libinput systemd wayland libxkbcommon
+    git base-devel pkgconf pixman libdrm pango libinput systemd wayland libxkbcommon
     curl fontconfig terminus-font
 )
 AUR_PACKAGES=(waypaper)
 CONSOLE_FONT=ter-132b
 FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/DejaVuSansMono.tar.xz"
 HYPRSHOT_URL="https://raw.githubusercontent.com/Gustash/Hyprshot/main/hyprshot"
+HYPRMOSAIC_URL="https://github.com/La5u/hyprmosaic"
 
 say() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
@@ -163,9 +164,15 @@ check_hyprland() {
 }
 
 build_plugin() {
-    say "Building GridGestures plugin"
-    make -C "$DOT/gridgestures" -s &&
-        install -Dm 755 "$DOT/gridgestures/gridgestures.so" "$HOME/.local/share/hypr/gridgestures.so"
+    local src="$HOME/.local/src/hyprmosaic"
+    say "Building hyprmosaic plugin"
+    if [[ -d "$src/.git" ]]; then
+        git -C "$src" pull -q --ff-only || warn "Could not update $src; building the current checkout"
+    else
+        git clone -q "$HYPRMOSAIC_URL" "$src" || return 1
+    fi
+    make -C "$src" -s &&
+        install -Dm 755 "$src/hyprmosaic.so" "$HOME/.local/share/hypr/hyprmosaic.so"
 }
 
 link() {
@@ -189,9 +196,9 @@ done
 
 [[ "${1:-}" == "--links" ]] || install_packages
 
-# The grid plugin is optional: without it everything works except swipe gestures.
+# The plugin is optional: without it everything works except grid swipes and per-workspace wallpapers.
 if ! { check_hyprland && build_plugin; }; then
-    warn "Grid plugin not built; fix the error above, then rerun ./install.sh --links"
+    warn "hyprmosaic not built; fix the error above, then rerun ./install.sh --links"
 fi
 
 systemctl --user daemon-reload
