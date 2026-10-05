@@ -35,10 +35,11 @@ for ff in .config/mozilla/firefox .mozilla/firefox; do
 done
 
 COPRS=(lionheartp/Hyprland scottames/ghostty)
+# swaybg is never run (hyprmosaic draws the wallpapers), but Waypaper refuses to start without a backend installed.
 FEDORA_PACKAGES=(
     hyprland hyprland-devel hyprgraphics-devel hyprland-guiutils hypridle hyprsunset
     xdg-desktop-portal-hyprland hyprpolkitagent
-    waybar waypaper rofi dunst ghostty thunar firefox unzip mpv obs-studio
+    waybar waypaper swaybg rofi dunst ghostty thunar firefox unzip mpv obs-studio
     brightnessctl playerctl wireplumber pavucontrol blueman bluez
     NetworkManager-wifi nm-connection-editor iw
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
@@ -50,7 +51,7 @@ FEDORA_PACKAGES=(
 ARCH_PACKAGES=(
     hyprland hyprland-guiutils hypridle hyprsunset
     xdg-desktop-portal-hyprland hyprpolkitagent
-    waybar rofi dunst ghostty thunar firefox unzip mpv obs-studio hyprshot
+    waybar swaybg rofi dunst ghostty thunar firefox unzip mpv obs-studio hyprshot
     brightnessctl playerctl wireplumber pavucontrol blueman bluez bluez-utils
     networkmanager nm-connection-editor iw
     grim slurp wl-clipboard swappy imagemagick jq imv libnotify
