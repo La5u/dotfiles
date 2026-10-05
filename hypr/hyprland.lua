@@ -58,8 +58,8 @@ local file_manager = "thunar"
 local menu = "rofi -show drun"
 local main_mod = "SUPER"
 
--- Raw-axis 3x3 workspace gestures (1-3 / 4-6 / 7-9).
-hl.plugin.load(os.getenv("HOME") .. "/.local/share/hypr/gridgestures.so")
+-- 3x3 workspace swipes (1-3 / 4-6 / 7-9) and per-workspace wallpapers.
+hl.plugin.load(os.getenv("HOME") .. "/.local/share/hypr/hyprmosaic.so")
 
 hl.on("hyprland.start", function()
     set_refresh_rate()
@@ -69,7 +69,6 @@ hl.on("hyprland.start", function()
     -- Password prompts for apps that need admin rights (mounting drives, etc.).
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("firefox")
-    hl.exec_cmd("waypaper --restore")
     -- hyprsunset is started on demand by scripts/redlight.sh
     hl.exec_cmd("waybar")
     hl.exec_cmd("hypridle")
@@ -119,6 +118,7 @@ hl.config({
     },
     misc = {
         force_default_wallpaper = 0,
+        background_color = 0xff120b1e,
         disable_hyprland_logo = true,
         disable_splash_rendering = true,
         animate_manual_resizes = false,
@@ -141,7 +141,7 @@ hl.config({
     },
 })
 
--- Three-finger 3x3 navigation is provided by the Hyprgrid plugin.
+-- Three-finger 3x3 navigation is provided by the hyprmosaic plugin.
 
 hl.bind("SUPER + CTRL + SHIFT + R", hl.dsp.exec_cmd("reboot"))
 hl.bind("SUPER + CTRL + SHIFT + S", hl.dsp.exec_cmd("shutdown now"))
