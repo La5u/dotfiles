@@ -1,19 +1,20 @@
 -- Every monitor at its native resolution and automatic scale, placed left to right.
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
 
--- True when a battery is discharging; desktops and plugged-in laptops count as AC.
-local function on_battery()
-    local p = io.popen("grep -sqx Discharging /sys/class/power_supply/*/status && echo yes")
-    local r = p:read("l")
-    p:close()
-    return r == "yes"
+-- Default to 60 Hz each session; keep manual choices across config reloads.
+-- Charger events never change the display mode. External monitors are untouched.
+local refresh_state = (os.getenv("XDG_RUNTIME_DIR") or "/tmp")
+    .. "/hypr-refresh-" .. (os.getenv("HYPRLAND_INSTANCE_SIGNATURE") or "default")
+local function requested_refresh_rate()
+    local f = io.open(refresh_state)
+    if not f then return 60 end
+    local rate = tonumber(f:read("l"))
+    f:close()
+    return rate == 120 and 120 or 60
 end
 
--- Laptop panels run at the mode closest to 60 Hz on battery and at their fastest
--- mode on AC, always at native resolution. External monitors keep their default.
--- Also called by bin/refresh-on-power when the charger is plugged or unplugged.
-function set_refresh_rate()
-    local battery = on_battery()
+function set_refresh_rate(always_apply)
+    local target = requested_refresh_rate()
     for _, m in ipairs(hl.get_monitors()) do
         if m.name:match("^eDP") or m.name:match("^LVDS") or m.name:match("^DSI") then
             local native
@@ -24,12 +25,11 @@ function set_refresh_rate()
             for _, mode in ipairs(m.available_modes) do
                 if native and mode.width == native.width and mode.height == native.height then
                     local better = not best
-                        or (battery and math.abs(mode.refresh_rate - 60) < math.abs(best.refresh_rate - 60))
-                        or (not battery and mode.refresh_rate > best.refresh_rate)
+                        or math.abs(mode.refresh_rate - target) < math.abs(best.refresh_rate - target)
                     if better then best = mode end
                 end
             end
-            if best and math.abs(best.refresh_rate - m.refresh_rate) > 0.5 then
+            if best and (always_apply == true or math.abs(best.refresh_rate - m.refresh_rate) > 0.5) then
                 hl.monitor({
                     output = m.name,
                     mode = string.format("%dx%d@%.3f", best.width, best.height, best.refresh_rate),
@@ -41,8 +41,18 @@ function set_refresh_rate()
         end
     end
 end
+function toggle_refresh_rate()
+    local next_rate = requested_refresh_rate() == 120 and 60 or 120
+    local f = assert(io.open(refresh_state, "w"))
+    f:write(tostring(next_rate), "\n")
+    f:close()
+    set_refresh_rate(true)
+end
+
+-- Declare the explicit mode before monitor rules are applied, avoiding a
+-- preferred -> 60 Hz switch (and brief blanking) on each config reload.
+set_refresh_rate(true)
 hl.on("monitor.added", set_refresh_rate)
-hl.on("config.reloaded", set_refresh_rate)
 
 -- Per-machine tweaks (extra monitors, mice, one-off binds) go in local.lua,
 -- which is not part of the dotfiles.
@@ -61,18 +71,22 @@ local main_mod = "SUPER"
 -- 3x3 workspace swipes (1-3 / 4-6 / 7-9) and per-workspace wallpapers.
 hl.plugin.load(os.getenv("HOME") .. "/.local/share/hypr/hyprmosaic.so")
 
+-- Start in the center of the 3x3 workspace grid. The rule makes 5 the
+-- monitor's initial workspace; the dispatch below is only a fallback, since on
+-- its own it can run before the monitor exists and be ignored.
+hl.workspace_rule({ workspace = "5", monitor = "eDP-1", default = true })
+
 hl.on("hyprland.start", function()
     set_refresh_rate()
-    -- Start in the center of the 3x3 workspace grid.
     hl.exec_cmd("hyprctl dispatch 'hl.dsp.focus({ workspace = 5 })'")
     hl.exec_cmd("systemctl --user start hyprland-session.target")
     -- Password prompts for apps that need admin rights (mounting drives, etc.).
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("firefox")
     -- hyprsunset is started on demand by scripts/redlight.sh
-    hl.exec_cmd("waybar")
+    -- The camera is re-enabled on every boot; start each session with it off.
+    hl.exec_cmd(os.getenv("HOME") .. "/.config/waybar/webcam-toggle.sh --off >/dev/null; waybar")
     hl.exec_cmd("hypridle")
-    hl.exec_cmd("refresh-on-power")
 end)
 
 hl.env("XCURSOR_SIZE", "20")

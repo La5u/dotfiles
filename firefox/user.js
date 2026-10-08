@@ -214,6 +214,29 @@ user_pref("findbar.highlightAll", true);
 // visit https://github.com/yokoffing/Betterfox/wiki/Optional-Hardening
 // Enter your personal overrides below this line:
 
+// Keep tabs resident; this does not override tab-discarding extensions.
+user_pref("browser.tabs.unloadOnLowMemory", false);
+
+// No distro homepage, pinned promotion, welcome or post-update pages.
+user_pref("browser.startup.homepage", "about:blank");
+user_pref("browser.newtabpage.pinned", "[]");
+user_pref("browser.newtabpage.enabled", false);
+user_pref("startup.homepage_welcome_url", "");
+user_pref("startup.homepage_welcome_url.additional", "");
+user_pref("startup.homepage_override_url", "");
+user_pref("browser.messaging-system.whatsNewPanel.enabled", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+
+// Explicitly reject feedback, promotional URL suggestions and crash uploads.
+user_pref("browser.ping-centre.telemetry", false);
+user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
+user_pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
+user_pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false);
+user_pref("browser.urlbar.quicksuggest.dataCollection.enabled", false);
+user_pref("browser.crashReports.unsubmittedCheck.autoSubmit2", false);
+user_pref("browser.tabs.crashReporting.includeURL", false);
+user_pref("app.normandy.first_run", false);
+
 
 /****************************************************************************
  * END: BETTERFOX                                                           *
