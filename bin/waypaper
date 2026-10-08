@@ -1,0 +1,27 @@
+#!/usr/bin/python
+"""App-local compact layout; keep upstream Waypaper and wallpaper hooks intact."""
+from waypaper.app import App
+from gi.repository import Gtk
+
+_original_init_ui = App.init_ui
+
+
+def compact_init_ui(self):
+    Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
+    _original_init_ui(self)
+    self.scrolled_window.set_kinetic_scrolling(False)
+    self.scrolled_window.set_overlay_scrolling(False)
+    self.set_border_width(0)
+    self.main_box.set_spacing(2)
+    self.top_button_box.set_margin_top(2)
+    self.top_container.set_spacing(4)
+    self.bottom_button_box.set_margin_bottom(2)
+    # Backend controls do nothing with Hyprmosaic's mapping-only backend.
+    if self.cf.backend == "none":
+        self.bottom_button_box.set_no_show_all(True)
+        self.bottom_button_box.hide()
+
+
+App.init_ui = compact_init_ui
+from waypaper.__main__ import run
+run()

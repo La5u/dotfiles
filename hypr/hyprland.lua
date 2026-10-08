@@ -78,11 +78,14 @@ hl.workspace_rule({ workspace = "5", monitor = "eDP-1", default = true })
 
 hl.on("hyprland.start", function()
     set_refresh_rate()
-    hl.exec_cmd("hyprctl dispatch 'hl.dsp.focus({ workspace = 5 })'")
+    -- Start in the center of the 3x3 workspace grid.
+    hl.dispatch(hl.dsp.focus({ workspace = 5 }))
     hl.exec_cmd("systemctl --user start hyprland-session.target")
     -- Password prompts for apps that need admin rights (mounting drives, etc.).
     hl.exec_cmd("systemctl --user start hyprpolkitagent")
     hl.exec_cmd("firefox")
+    -- Reopen tracked Codex/Claude conversations, once per desktop login.
+    hl.exec_cmd(os.getenv("HOME") .. "/.local/bin/agent-window restore")
     -- hyprsunset is started on demand by scripts/redlight.sh
     -- The camera is re-enabled on every boot; start each session with it off.
     hl.exec_cmd(os.getenv("HOME") .. "/.config/waybar/webcam-toggle.sh --off >/dev/null; waybar")
@@ -155,6 +158,9 @@ hl.config({
     },
 })
 
+-- Disable all animation leaves, including workspace swipe settling.
+hl.animation({ leaf = "global", enabled = false })
+
 -- Three-finger 3x3 navigation is provided by the hyprmosaic plugin.
 
 hl.bind("SUPER + CTRL + SHIFT + R", hl.dsp.exec_cmd("reboot"))
@@ -167,7 +173,7 @@ hl.bind("SUPER + F", hl.dsp.window.fullscreen())
 hl.bind("SUPER + W", hl.dsp.exec_cmd("bash ~/.config/waybar/toggle-bar.sh"))
 hl.bind("SUPER + SHIFT + F", hl.dsp.exec_cmd("firefox"))
 hl.bind("SUPER + SHIFT + Q", hl.dsp.exec_cmd("qbittorrent"))
-hl.bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("waypaper"))
+hl.bind("SUPER + SHIFT + W", hl.dsp.exec_cmd("~/.local/bin/waypaper"))
 hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd("zed"))
 hl.bind("SUPER + SHIFT + C", hl.dsp.exec_cmd("chromium --password-store=basic"))
 

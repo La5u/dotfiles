@@ -17,9 +17,19 @@
     background-color: rgba(0, 0, 0, 0);
     }
 
-#workspaces button {
-    padding: 0;
+#workspaces button label {
+    margin-top: 0;
+    margin-bottom: 0;
+}
 
+#workspaces button {
+    font-family: sans-serif, "DejaVuSansM Nerd Font Propo";
+    font-size: 15px;
+    padding: 0;
+    min-height: 0;
+    min-width: 0;
+    border: none;
+    box-shadow: none;
 }
 
 #workspaces button.empty {
@@ -63,7 +73,10 @@
 
 #workspaces {
     padding: 0 0 0 10px;
-    margin-right: -3px;
+}
+
+#clock {
+    padding-left: 5px;
 }
 
 /* Keep the compact status icons evenly spaced on the right. */
@@ -72,6 +85,7 @@
 #custom-redlight,
 #backlight,
 #battery,
+#network,
 #bluetooth,
 #tray {
     padding-left: 4px;

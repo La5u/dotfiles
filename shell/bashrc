@@ -1,0 +1,39 @@
+# ~/.bashrc
+
+export QT_QPA_PLATFORMTHEME=qt6ct
+# Credentials and machine-local overrides stay outside the repository.
+[[ -f "$HOME/.bashrc.local" ]] && source "$HOME/.bashrc.local"
+
+# If not running interactively, don't do anything.
+[[ $- != *i* ]] && return
+
+alias py='python3'
+alias pms='py -m http.server'
+alias sv='sudo --preserve-env=XDG_RUNTIME_DIR nvim'
+alias nv='nvim'
+alias gds='git diff --stat'
+alias nano='sv'
+alias ls='ls --color=auto'
+alias sus='sudo systemctl'
+alias sp='sudo pacman'
+alias hc='sv ~/.config/hypr/hyprland.lua'
+alias hyprclients="hyprctl clients -j | jq -r '.[] | \"\(.class) - \(.initialTitle)\"'"
+alias fcm='free-coding-models'
+PS1='[\u@\h \W]\$ '
+[[ -f "$HOME/.bashrc.d/prompt.sh" ]] && source "$HOME/.bashrc.d/prompt.sh"
+
+export PATH="$HOME/.local/bin:$PATH"
+
+[ -f ~/.free-coding-models.env ] && . ~/.free-coding-models.env
+# Its GITHUB_TOKEN is invalid and overrides gh's own login; keep it out of the shell.
+unset GITHUB_TOKEN
+
+# opencode
+export PATH="$HOME/.opencode/bin:$PATH"
+
+# bun (user-owned; global packages install to ~/.bun/bin, never root)
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# Track ordinary Codex/Claude launches for restoration after desktop restart.
+[ -f "$HOME/.config/agent-windows/shell.bash" ] && source "$HOME/.config/agent-windows/shell.bash"

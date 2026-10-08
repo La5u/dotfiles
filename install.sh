@@ -15,6 +15,7 @@ LINKS=(
     "waybar/config               .config/waybar/config"
     "waybar/style.css            .config/waybar/style.css"
     "waypaper/config.ini         .config/waypaper/config.ini"
+    "waypaper/style.css          .config/waypaper/style.css"
     "ghostty/config.ghostty      .config/ghostty/config.ghostty"
     "rofi/config.rasi            .config/rofi/config.rasi"
     "thunar/uca.xml              .config/Thunar/uca.xml"
@@ -23,6 +24,9 @@ LINKS=(
     "systemd/hyprland-session.target .config/systemd/user/hyprland-session.target"
     "wallpapers                  Pictures/Wallpapers"
     "shell/bash_profile          .bash_profile"
+    "shell/bashrc                .bashrc"
+    "shell/bash_logout           .bash_logout"
+    "shell/profile               .profile"
     "shell/prompt.sh             .bashrc.d/prompt.sh"
 )
 for f in "$DOT"/waybar/*.sh; do LINKS+=("waybar/${f##*/} .config/waybar/${f##*/}"); done

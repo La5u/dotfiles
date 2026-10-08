@@ -16,9 +16,9 @@
         "backlight",
         "pulseaudio",
         "pulseaudio#microphone",
-        "battery",
         "network",
         "bluetooth",
+        "battery",
         "tray"
     ],
     // Click the arrow to show or hide the less-used toggles, like the Windows tray.
@@ -88,7 +88,7 @@
         "format": "{}"
     },
     "custom/screen-off": {
-        "format": "󰶐",
+        "format": "󰶘",
         "tooltip-format": "Turn screen off (agents keep running; move mouse to wake)",
         "on-click": "$HOME/.config/waybar/screen-off.sh"
     },
@@ -191,7 +191,7 @@
     },
     "clock": {
         // "timezone": "America/New_York",
-	"format": "{:%d.%m | %H:%M}",
+	"format": "| {:%d.%m | %H:%M}",
         "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
     },
     "cpu": {

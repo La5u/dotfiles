@@ -31,9 +31,10 @@ if [ "$(nmcli -t -f WIFI general)" != "enabled" ]; then
     exit $?
 fi
 
-# Ask NetworkManager for a fresh scan and create one entry per SSID.
-nmcli device wifi rescan >/dev/null 2>&1 || true
-sleep 1
+# Open immediately with cached results; scan only when explicitly requested.
+if [ "${1:-}" = "--refresh" ]; then
+    nmcli --wait 10 device wifi rescan >/dev/null 2>&1 || true
+fi
 
 declare -a labels ssids
 declare -A seen
@@ -46,12 +47,15 @@ while IFS=: read -r active signal security ssid; do
     [ -n "$security" ] || security="open"
     labels+=("$(printf '%s %3s%%  %-12s  %s' "$marker" "$signal" "$security" "$ssid")")
     ssids+=("$ssid")
-done < <(nmcli -t --escape no -f IN-USE,SIGNAL,SECURITY,SSID device wifi list)
+done < <(nmcli -t --escape no -f IN-USE,SIGNAL,SECURITY,SSID device wifi list --rescan no)
 
-menu=$(printf 'Disconnect\nDisable Wi-Fi\n%s\n' "$notification_action"; printf '%s\n' "${labels[@]}")
+menu=$(printf 'Disconnect\nDisable Wi-Fi\nRefresh networks\n%s\n' "$notification_action"; printf '%s\n' "${labels[@]}")
 choice=$(printf '%s' "$menu" | "${rofi_menu[@]}") || exit 0
 
 case "$choice" in
+    "Refresh networks")
+        exec "$0" --refresh
+        ;;
     Disconnect)
         nmcli device disconnect "$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2=="wifi"{print $1; exit}')" >/dev/null || show_error "Could not disconnect Wi-Fi"
         exit
