@@ -11,13 +11,14 @@
     "modules-center": [],
     "modules-right": [
         "hyprland/language",
+        "custom/refresh",
         "group/toggles",
+        "backlight",
         "pulseaudio",
         "pulseaudio#microphone",
         "battery",
         "network",
         "bluetooth",
-        "custom/notifications",
         "tray"
     ],
     // Click the arrow to show or hide the less-used toggles, like the Windows tray.
@@ -34,7 +35,7 @@
             "custom/webcam",
             "custom/location",
             "custom/wifi-gaming",
-            "backlight",
+            "custom/notifications",
             "temperature",
             "custom/screen-off"
         ]
@@ -76,6 +77,14 @@
         "exec-on-event": true,
         "return-type": "json",
         "on-click": "$HOME/.config/waybar/wifi-gaming-toggle.sh --toggle",
+        "format": "{}"
+    },
+    "custom/refresh": {
+        "exec": "$HOME/.config/waybar/refresh-toggle.sh --status",
+        "interval": 5,
+        "exec-on-event": true,
+        "return-type": "json",
+        "on-click": "$HOME/.config/waybar/refresh-toggle.sh --toggle",
         "format": "{}"
     },
     "custom/screen-off": {
@@ -248,9 +257,11 @@
         "format-ethernet": "󰈀",
         "format-linked": "󰈀",
         "format-disconnected": "󰤭",
+        "format-disabled": "󰤮",
         "tooltip-format-wifi": "{essid} ({signalStrength}%)",
         "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
         "tooltip-format-disconnected": "Wi-Fi disconnected",
+        "tooltip-format-disabled": "Wi-Fi off",
         "on-click": "$HOME/.local/bin/toggle-wifi",
         "on-click-right": "$HOME/.local/bin/rofi-wifi",
         "on-click-middle": "nm-connection-editor"

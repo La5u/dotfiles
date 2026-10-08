@@ -23,5 +23,7 @@ The installer installs packages, clones and builds hyprmosaic into `~/.local/sha
 
 ## Notes
 
+- TODO on the other laptop: add Thunar preferences to this repo and `install.sh`. Currently only custom right-click actions (`thunar/uca.xml`) are carried over. Copy the desired preferences from `~/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml`; also save `~/.config/Thunar/accels.scm` if you want keyboard shortcuts carried over. Close Thunar and stop `xfconfd` before restoring preferences so its cached settings don't overwrite them.
+
 - The Waybar webcam and gaming-mode toggles use `sudo -n`, so they need matching sudoers rules; without them they show a notification instead.
 - hyprmosaic must be rebuilt after every Hyprland update: `./install.sh --links` (it also pulls the latest version).

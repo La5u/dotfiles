@@ -203,7 +203,7 @@ if ! { check_hyprland && build_plugin; }; then
 fi
 
 systemctl --user daemon-reload
-systemctl --user enable --now online-notifier.service >/dev/null 2>&1 || warn "Could not enable online-notifier"
+# Disabled 2026-10-05 (reliable Wi-Fi now): systemctl --user enable --now online-notifier.service >/dev/null 2>&1 || warn "Could not enable online-notifier"
 
 [[ -d "$BACKUP" ]] && say "Replaced files are in $BACKUP"
 say "Done. Log in on TTY1 and Hyprland starts automatically."
