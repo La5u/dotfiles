@@ -1,0 +1,24 @@
+# Stay reliable on intermittent Wi-Fi and resume partial downloads.
+--continue
+--socket-timeout 60
+--retries infinite
+--fragment-retries infinite
+--extractor-retries infinite
+--file-access-retries infinite
+
+# Two fragments improves throughput without overloading an unstable link.
+--concurrent-fragments 2
+
+# Back off between failures instead of hammering the connection.
+--retry-sleep "http:exp=1:60"
+--retry-sleep "fragment:exp=1:60"
+--retry-sleep "extractor:exp=1:60"
+--no-abort-on-error
+
+# Never exceed the 1920x1080 laptop display. Prefer hardware-decoded VP9/H.264
+# over AV1, which this laptop's AMD GPU cannot decode in hardware.
+--format "bestvideo[width<=1920][height<=1080][vcodec!^=av01]+bestaudio/bestvideo[width<=1920][height<=1080]+bestaudio/best[width<=1920][height<=1080]"
+
+# Download French subtitles when they are available.
+--write-subs
+--sub-langs "fr.*"

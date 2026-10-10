@@ -1,0 +1,289 @@
+#!/usr/bin/env python3
+"""Explicitly tracked Ghostty agent windows; metadata only, never transcripts."""
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import signal
+import shutil
+import re
+import subprocess
+import sys
+import time
+import uuid
+
+STATE = Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'agent-windows'
+SELF = str(Path(__file__).resolve())
+
+
+def setup():
+    STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(STATE, 0o700)
+
+
+def save(record):
+    target = STATE / (record['window_id'] + '.json')
+    tmp = target.with_suffix('.tmp')
+    with open(tmp, 'w', opener=lambda p, f: os.open(p, f, 0o600)) as out:
+        json.dump(record, out, sort_keys=True)
+        out.flush()
+        os.fsync(out.fileno())
+    os.replace(tmp, target)
+
+
+def load(key):
+    key = str(uuid.UUID(key))
+    record = json.loads((STATE / (key + '.json')).read_text())
+    if record['window_id'] != key or record['agent'] not in ('claude', 'codex'):
+        raise ValueError('invalid record')
+    if record.get('session_id'):
+        uuid.UUID(record['session_id'])
+    return record
+
+
+def lock(key):
+    handle = open(STATE / (key + '.lock'), 'a')
+    os.chmod(handle.name, 0o600)
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        handle.close()
+        return None
+    return handle
+
+
+def hypr(*args):
+    try:
+        return subprocess.check_output(['hyprctl', *args], stderr=subprocess.DEVNULL, timeout=2).decode()
+    except (OSError, subprocess.SubprocessError):
+        return ''
+
+
+def workspace():
+    try:
+        return json.loads(hypr('-j', 'activeworkspace')).get('id')
+    except ValueError:
+        return None
+
+
+def parent(pid):
+    try:
+        # comm can contain spaces and parentheses.
+        return int(Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[1])
+    except (OSError, ValueError, IndexError):
+        return 0
+
+
+def descendants(root):
+    result = {root}
+    parents = {}
+    for entry in Path('/proc').iterdir():
+        if entry.name.isdigit():
+            parents[int(entry.name)] = parent(int(entry.name))
+    while True:
+        extra = {pid for pid, ppid in parents.items() if ppid in result} - result
+        if not extra:
+            return result
+        result.update(extra)
+
+
+def discover(root, cwd, started):
+    """Only accept a session file actually open by the launched process tree.
+
+    Matching cwd/mtime alone is NOT ownership evidence: concurrent sessions can
+    share both. Read only the bounded first session_meta line, never messages.
+    """
+    candidates = set()
+    home = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))).resolve()
+    sessions = home / 'sessions'
+    for pid in descendants(root):
+        try:
+            descriptors = list(Path(f'/proc/{pid}/fd').iterdir())
+        except OSError:
+            continue
+        for fd in descriptors:
+            try:
+                path = fd.resolve(strict=True)
+                if not path.is_relative_to(sessions) or path.suffix != '.jsonl':
+                    continue
+                if path.stat().st_mtime_ns < started:
+                    continue
+                with path.open('rb') as stream:
+                    line = stream.readline(1048577)
+                if len(line) > 1048576 or not line.endswith(b'\n'):
+                    continue
+                header = json.loads(line)
+                payload = header.get('payload', {})
+                if header.get('type') != 'session_meta' or payload.get('cwd') != cwd:
+                    continue
+                candidates.add(str(uuid.UUID(payload['id'])))
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+    return next(iter(candidates)) if len(candidates) == 1 else None
+
+
+def move_workspace(name):
+    if not re.fullmatch(r'[1-9][0-9]{0,9}', str(name)) or int(name) >= 2**32:
+        return
+    ancestors = set()
+    pid = os.getpid()
+    while pid and pid not in ancestors:
+        ancestors.add(pid)
+        pid = parent(pid)
+    try:
+        clients = json.loads(hypr('-j', 'clients'))
+        for client in clients:
+            if client.get('pid') in ancestors:
+                address = client.get('address', '')
+                if re.fullmatch(r'0x[0-9a-fA-F]+', address):
+                    hypr('dispatch', f'hl.dsp.window.move({{ workspace = {int(name)}, '
+                         f'window = "address:{address}", follow = false }})')
+                    return
+    except (ValueError, TypeError):
+        pass
+
+
+def spawn(record):
+    subprocess.Popen(['ghostty', '-e', SELF, '_run', record['window_id']], start_new_session=True)
+
+
+def run(key):
+    guard = lock(key)
+    if guard is None:
+        return 0
+    record = load(key)
+    interrupted = []
+    child = None
+
+    def stop(signum, frame):
+        interrupted.append(signum)
+        if child is not None and child.poll() is None:
+            try:
+                child.send_signal(signum)
+            except ProcessLookupError:
+                pass
+
+    for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        signal.signal(sig, stop)
+    record['pending_until'] = 0
+    record['wrapper_pid'] = os.getpid()
+    save(record)
+    move_workspace(record.get('workspace'))
+    session = record.get('session_id')
+    if record['agent'] == 'claude':
+        command = ['claude', '--resume' if record.get('launched') else '--session-id', session]
+    elif session:
+        command = ['codex', 'resume', session]
+    else:
+        if record.get('launched'):
+            print('No proven Codex session ID; refusing to guess. Forget this window or start a new one.', file=sys.stderr)
+            guard.close()
+            return 1
+        command = ['codex']
+    started = time.time_ns()
+    try:
+        if interrupted:
+            return 128 + interrupted[0]
+        executable = shutil.which(command[0])
+        if executable is None:
+            raise FileNotFoundError(command[0])
+        child = subprocess.Popen([executable, *command[1:]], cwd=record['cwd'])
+        if interrupted:
+            child.send_signal(interrupted[0])
+        record['launched'] = True
+        save(record)
+        while child.poll() is None:
+            if record['agent'] == 'codex' and not record.get('session_id'):
+                found = discover(child.pid, record['cwd'], started)
+                if found:
+                    record['session_id'] = found
+                    save(record)
+            time.sleep(0.2)
+        code = child.wait()
+        # Only successful unsignalled exit is treated as deliberate completion.
+        if code == 0 and not interrupted:
+            (STATE / (key + '.json')).unlink(missing_ok=True)
+        return code if code >= 0 else 128 - code
+    except OSError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    finally:
+        guard.close()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('action', choices=['here', 'codex', 'claude', 'restore', 'status', 'forget', '_run'])
+    parser.add_argument('value', nargs='?')
+    args, extra = parser.parse_known_args()
+    if args.action == 'here':
+        if args.value not in ('codex', 'claude'):
+            parser.error('here requires codex or claude')
+        executable = shutil.which(args.value)
+        if executable is None:
+            parser.error(f'{args.value} executable not found')
+        # Bounded tracking: all non-plain invocations retain their exact argv,
+        # including resume/continue/print modes, without inventing session IDs.
+        if extra:
+            os.execv(executable, [args.value, *extra])
+    elif extra:
+        parser.error('unrecognized arguments: ' + ' '.join(extra))
+    setup()
+    if args.action == 'here':
+        record = dict(window_id=str(uuid.uuid4()), agent=args.value, cwd=os.getcwd(),
+                      session_id=str(uuid.uuid4()) if args.value == 'claude' else None,
+                      workspace=workspace(), launched=False, pending_until=0)
+        save(record)
+        return run(record['window_id'])
+    if args.action in ('codex', 'claude'):
+        if not args.value:
+            parser.error('a working directory is required')
+        cwd = str(Path(args.value).expanduser().resolve(strict=True))
+        if not Path(cwd).is_dir():
+            parser.error('working directory is not a directory')
+        record = dict(window_id=str(uuid.uuid4()), agent=args.action, cwd=cwd,
+                      session_id=str(uuid.uuid4()) if args.action == 'claude' else None,
+                      workspace=workspace(), launched=False, pending_until=time.time() + 15)
+        save(record)  # durable registration before terminal launch
+        spawn(record)
+        print(record['window_id'])
+    elif args.action == '_run':
+        return run(str(uuid.UUID(args.value)))
+    elif args.action == 'forget':
+        record = load(args.value)
+        guard = lock(record['window_id'])
+        if guard is None:
+            parser.error('window is running; close it before forgetting')
+        (STATE / (record['window_id'] + '.json')).unlink()
+        guard.close()
+    else:
+        restore_guard = lock('restore')
+        if restore_guard is None:
+            parser.error('another restore/status operation is in progress')
+        for path in sorted(STATE.glob('*.json')):
+            record = load(path.stem)
+            guard = lock(path.stem)
+            active = guard is None
+            pending = record.get('pending_until', 0) > time.time()
+            if args.action == 'status':
+                print(json.dumps(dict(record, active=active, pending=pending), sort_keys=True))
+            elif not active and not pending:
+                if record['agent'] == 'codex' and record.get('launched') and not record.get('session_id'):
+                    print(f'{path.stem}: missing proven session ID; not restored', file=sys.stderr)
+                else:
+                    record['pending_until'] = time.time() + 15
+                    save(record)
+                    spawn(record)
+            if guard:
+                guard.close()
+        restore_guard.close()
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(f'agent-window: {exc}', file=sys.stderr)
+        sys.exit(1)

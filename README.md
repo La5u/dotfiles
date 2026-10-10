@@ -23,7 +23,12 @@ The installer installs packages, clones and builds hyprmosaic into `~/.local/sha
 
 ## Notes
 
-- TODO on the other laptop: add Thunar preferences to this repo and `install.sh`. Currently only custom right-click actions (`thunar/uca.xml`) are carried over. Copy the desired preferences from `~/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml`; also save `~/.config/Thunar/accels.scm` if you want keyboard shortcuts carried over. Close Thunar and stop `xfconfd` before restoring preferences so its cached settings don't overwrite them.
+- App preferences now include Neovim, MPV, yt-dlp, Zed, qt6ct, GTK, htop, Fcitx5, autostart suppressions and Thunar. Close Thunar and stop `xfconfd` before installing to prevent cached preferences overwriting the restored XML. Generated window geometry and inactive Thunar shortcut dumps are excluded.
+- Laptop-specific PipeWire latency and batsignal overrides are tracked but only linked with `./install.sh --links --machine-settings`. Install/enable batsignal separately if needed; other machines keep their own audio/battery settings.
+- `bin/agent-window` and `agent-windows/shell.bash` track and restore agent terminals. See [agent-windows/README.md](agent-windows/README.md); runtime records and conversations stay outside Git. `codex-sub` requires Codex; `mg.sh` requires FFmpeg, gifski and MPV.
+- Pi extension sources and agent definitions are in `pi/`; the installer links them under `~/.pi/agent/`. Install Pi and authenticate its providers separately. Codex/Claude/Pi/Zed/gifski are not installed by this script.
+- Git preferences are included from `~/.config/git/dotfiles.conf`, preserving local identity/authentication. The tracked commit-message guard is installed in `~/.config/git/hooks`; existing custom hook locations are preserved.
+- Ghostty's normal `config` and `config.ghostty` paths both link to the tracked config. Per-machine DPI, credentials, OBS stream settings, caches and application state are intentionally excluded.
 - Bash aliases, prompt, login profile, logout file and `.profile` are tracked in `shell/` and symlinked by the installer. Keep credentials and local shell overrides in `~/.bashrc.local` (loaded by `.bashrc`, never tracked); `~/.free-coding-models.env` also stays local.
 
 - The Waybar webcam and gaming-mode toggles use `sudo -n`, so they need matching sudoers rules; without them they show a notification instead.
