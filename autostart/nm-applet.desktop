@@ -1,0 +1,4 @@
+[Desktop Entry]
+Type=Application
+Name=NetworkManager Applet (disabled; launch editor from Waybar)
+Hidden=true

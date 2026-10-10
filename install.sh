@@ -2,7 +2,18 @@
 # Set up the Hyprland 3x3 grid desktop from this repo.
 #   ./install.sh          packages (Fedora or Arch), grid plugin, links
 #   ./install.sh --links  grid plugin and links only
+#   Add --machine-settings to restore laptop audio/battery overrides too.
 set -euo pipefail
+
+LINKS_ONLY=false
+MACHINE_SETTINGS=false
+for arg in "$@"; do
+    case "$arg" in
+        --links) LINKS_ONLY=true ;;
+        --machine-settings) MACHINE_SETTINGS=true ;;
+        *) printf 'Unknown option: %s\n' "$arg" >&2; exit 1 ;;
+    esac
+done
 
 DOT="$(cd "$(dirname "$0")" && pwd)"
 BACKUP="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
@@ -17,8 +28,23 @@ LINKS=(
     "waypaper/config.ini         .config/waypaper/config.ini"
     "waypaper/style.css          .config/waypaper/style.css"
     "ghostty/config.ghostty      .config/ghostty/config.ghostty"
+    "ghostty/config.ghostty      .config/ghostty/config"
     "rofi/config.rasi            .config/rofi/config.rasi"
     "thunar/uca.xml              .config/Thunar/uca.xml"
+    "thunar/thunar.xml           .config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"
+    "nvim/init.lua               .config/nvim/init.lua"
+    "mpv/mpv.conf                .config/mpv/mpv.conf"
+    "yt-dlp/config               .config/yt-dlp/config"
+    "zed/settings.json          .config/zed/settings.json"
+    "qt6ct/qt6ct.conf             .config/qt6ct/qt6ct.conf"
+    "gtk/gtkrc-2.0               .gtkrc-2.0"
+    "htop/htoprc                 .config/htop/htoprc"
+    "fcitx5/config               .config/fcitx5/config"
+    "fcitx5/profile              .config/fcitx5/profile"
+    "fcitx5/conf/hangul.conf     .config/fcitx5/conf/hangul.conf"
+    "agent-windows/shell.bash    .config/agent-windows/shell.bash"
+    "git/config                 .config/git/dotfiles.conf"
+    "git/hooks/commit-msg        .config/git/hooks/commit-msg"
     "hyprland-mimeapps.list      .config/hyprland-mimeapps.list"
     "systemd/online-notifier.service .config/systemd/user/online-notifier.service"
     "systemd/hyprland-session.target .config/systemd/user/hyprland-session.target"
@@ -29,8 +55,20 @@ LINKS=(
     "shell/profile               .profile"
     "shell/prompt.sh             .bashrc.d/prompt.sh"
 )
+if "$MACHINE_SETTINGS"; then
+    LINKS+=(
+        "pipewire/pipewire.conf.d/latency.conf .config/pipewire/pipewire.conf.d/latency.conf"
+        "systemd/batsignal.service.d/override.conf .config/systemd/user/batsignal.service.d/override.conf"
+    )
+fi
+for f in "$DOT"/autostart/*.desktop; do LINKS+=("autostart/${f##*/} .config/autostart/${f##*/}"); done
+for f in "$DOT"/pi/extensions/*.ts; do LINKS+=("pi/extensions/${f##*/} .pi/agent/extensions/${f##*/}"); done
+for f in "$DOT"/pi/extensions/subagent/*.ts; do LINKS+=("pi/extensions/subagent/${f##*/} .pi/agent/extensions/subagent/${f##*/}"); done
+for f in "$DOT"/pi/agents/*.md; do LINKS+=("pi/agents/${f##*/} .pi/agent/agents/${f##*/}"); done
 for f in "$DOT"/waybar/*.sh; do LINKS+=("waybar/${f##*/} .config/waybar/${f##*/}"); done
-for f in "$DOT"/bin/*; do LINKS+=("bin/${f##*/} .local/bin/${f##*/}"); done
+for f in "$DOT"/bin/*; do
+    [[ -f "$f" ]] && LINKS+=("bin/${f##*/} .local/bin/${f##*/}")
+done
 # Betterfox user.js into the profile Firefox launches by default, if one exists yet.
 # Newer Firefox keeps profiles under ~/.config/mozilla, older under ~/.mozilla.
 for ff in .config/mozilla/firefox .mozilla/firefox; do
@@ -49,7 +87,8 @@ FEDORA_PACKAGES=(
     grim slurp wl-clipboard swappy ImageMagick jq imv libnotify
     git gcc-c++ make pkgconf-pkg-config pixman-devel libdrm-devel pango-devel
     libinput-devel systemd-devel wayland-devel libxkbcommon-devel
-    curl fontconfig terminus-fonts-console
+    curl fontconfig terminus-fonts-console neovim qt6ct yt-dlp htop
+    fcitx5 fcitx5-hangul ffmpeg
 )
 # Arch ships headers with the libraries, so no -devel packages are needed.
 ARCH_PACKAGES=(
@@ -60,7 +99,8 @@ ARCH_PACKAGES=(
     networkmanager nm-connection-editor iw
     grim slurp wl-clipboard swappy imagemagick jq imv libnotify
     git base-devel pkgconf pixman libdrm pango libinput systemd wayland libxkbcommon
-    curl fontconfig terminus-font
+    curl fontconfig terminus-font neovim qt6ct yt-dlp htop
+    fcitx5 fcitx5-hangul ffmpeg
 )
 AUR_PACKAGES=(waypaper)
 CONSOLE_FONT=ter-132b
@@ -193,13 +233,31 @@ link() {
     echo "  linked ~/$2"
 }
 
+# Xfconf can overwrite restored preferences from its in-memory cache.
+if pgrep -x xfconfd >/dev/null; then
+    warn "Close Thunar and stop xfconfd before installing, then rerun."
+    exit 1
+fi
+
 say "Linking configs"
 for entry in "${LINKS[@]}"; do
     read -r src dst <<<"$entry"
     link "$src" "$dst"
 done
 
-[[ "${1:-}" == "--links" ]] || install_packages
+# Include portable Git preferences without replacing identity/credentials.
+if ! git config --global --get-all include.path 2>/dev/null | grep -Fxq "$HOME/.config/git/dotfiles.conf"; then
+    git config --global --add include.path "$HOME/.config/git/dotfiles.conf"
+fi
+
+hooks_path=$(git config --global --get core.hooksPath || true)
+if [[ -z "$hooks_path" ]]; then
+    git config --global core.hooksPath "$HOME/.config/git/hooks"
+elif [[ "$hooks_path" != "$HOME/.config/git/hooks" ]]; then
+    warn "Keeping existing Git hooks path: $hooks_path; commit guard copied but not activated"
+fi
+
+"$LINKS_ONLY" || install_packages
 
 # The plugin is optional: without it everything works except grid swipes and per-workspace wallpapers.
 if ! { check_hyprland && build_plugin; }; then

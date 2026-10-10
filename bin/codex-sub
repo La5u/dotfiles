@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Run Codex non-interactively as a subagent and print only its final message.
+# Usage: codex-sub [-m model] [-e effort] [-w] [-C dir] [prompt | - ]
+#   -m  model (default gpt-6.1-sol)
+#   -e  reasoning effort: low|medium|high|xhigh|max|ultra (default medium)
+#   -w  allow writes in the working dir (default: read-only sandbox)
+#   -C  working directory (default: current)
+#   prompt omitted or "-" reads the prompt from stdin
+set -euo pipefail
+
+model="${CODEX_SUB_MODEL:-gpt-6.1-sol}"
+effort="${CODEX_SUB_EFFORT:-medium}"
+sandbox="read-only"
+dir="$PWD"
+
+while getopts "m:e:wC:" opt; do
+  case "$opt" in
+    m) model="$OPTARG" ;;
+    e) effort="$OPTARG" ;;
+    w) sandbox="workspace-write" ;;
+    C) dir="$OPTARG" ;;
+    *) sed -n '2,8p' "$0" >&2; exit 2 ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+if [[ $# -eq 0 || "$1" == "-" ]]; then
+  prompt="$(cat)"
+else
+  prompt="$*"
+fi
+
+out="$(mktemp)"
+log="$(mktemp)"
+trap 'rm -f "$out" "$log"' EXIT
+
+if ! codex exec -m "$model" -c "model_reasoning_effort=\"$effort\"" \
+    -s "$sandbox" -C "$dir" --skip-git-repo-check --ephemeral --color never \
+    -o "$out" - <<<"$prompt" >"$log" 2>&1; then
+  echo "codex-sub: codex exec failed; last log lines:" >&2
+  tail -n 40 "$log" >&2
+  exit 1
+fi
+
+cat "$out"

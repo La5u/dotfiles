@@ -1,0 +1,10 @@
+#!/bin/sh
+# Permanent guard: block AI-attribution trailers (Codebuff/FreeBuff, Claude,
+# Codex, Copilot, ...) from any commit message in any repository of this user.
+# Installed at the user's request.
+tools='codebuff|freebuff|claude|anthropic|codex|openai|chatgpt|copilot|cursor|aider|devin|gemini'
+if grep -qiE "^co-authored-by:.*($tools)|generated (with|by) .*($tools)|\[($tools)[^]]*\]\(https?://" "$1"; then
+  echo "BLOCKED: commit message contains an AI-tool attribution." >&2
+  echo "This user's repositories must not credit or advertise AI tools." >&2
+  exit 1
+fi
