@@ -1,0 +1,16 @@
+#!/bin/bash
+# Quiet the home server's fan while I sleep: cap its CPU when this laptop's screen
+# turns off between 22:00 and 10:00, restore when the screen turns on or at 10:00.
+# Called by hypridle (screen-off/resume) and server-night-quiet-{22,10}.timer. No polling.
+state=~/.cache/server-night-quiet
+hour=$(date +%-H); night=0; { [ $hour -ge 22 ] || [ $hour -lt 10 ]; } && night=1
+screen=$(cat /sys/class/drm/card*-eDP-1/dpms 2>/dev/null | head -1)
+case "$1" in
+  off)   [ $night = 1 ] && want=quiet ;;                       # screen just turned off
+  on)    want=normal ;;                                        # screen just turned on
+  check) if [ $night = 1 ] && [ "$screen" = Off ]; then want=quiet; else want=normal; fi ;;
+esac
+[ -z "$want" ] && exit 0
+cur=$(cat $state 2>/dev/null || echo normal)
+[ "$want" = "$cur" ] && exit 0
+ssh -o BatchMode=yes -o ConnectTimeout=8 server sudo -n night-quiet $want >/dev/null && echo $want > $state
