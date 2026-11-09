@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# On-demand graphical NetworkManager Wi-Fi picker for Waybar.
+# On-demand graphical NetworkManager Wi-Fi and VPN picker for Waybar.
 set -u
 
-rofi_menu=(rofi -dmenu -i -p "Wi-Fi")
+# Mouse: hover highlights, one left click activates, the wheel or scrollbar scrolls.
+rofi_menu=(rofi -dmenu -i -p "Wi-Fi/VPN"
+    -hover-select -me-select-entry '' -me-accept-entry MousePrimary
+    -theme-str 'listview { scrollbar: true; }')
 show_error() { rofi -e "$1" >/dev/null 2>&1 || true; }
 
 notification_dir="${XDG_CONFIG_HOME:-$HOME/.config}/online-notifier"
@@ -49,10 +52,52 @@ while IFS=: read -r active signal security ssid; do
     ssids+=("$ssid")
 done < <(nmcli -t --escape no -f IN-USE,SIGNAL,SECURITY,SSID device wifi list --rescan no)
 
-menu=$(printf 'Disconnect\nDisable Wi-Fi\nRefresh networks\n%s\n' "$notification_action"; printf '%s\n' "${labels[@]}")
+# VPN profiles, active ones first. Only one VPN stays up: picking one replaces
+# the others, and picking the active one turns it off. Tailscale is type tun, so
+# it is never listed or touched.
+declare -a vpn_labels vpn_uuids active_vpns=()
+vpn_action=""
+while IFS=: read -r uuid type vpn_active name; do
+    [ "$type" = "wireguard" ] || [ "$type" = "vpn" ] || continue
+    marker=" "
+    if [ "$vpn_active" = "yes" ]; then
+        marker="●"
+        active_vpns+=("$uuid")
+        vpn_action="Turn off VPN"
+    fi
+    vpn_labels+=("$(printf '%s VPN  %-9s  %s' "$marker" "$type" "$name")")
+    vpn_uuids+=("$uuid")
+done < <(nmcli -t --escape no -f UUID,TYPE,ACTIVE,NAME connection show | sort -t: -k3,3r -k4,4)
+
+vpns_down() {
+    local uuid
+    for uuid in "${active_vpns[@]}"; do
+        nmcli connection down "$uuid" >/dev/null 2>&1 || show_error "Could not turn off the active VPN"
+    done
+}
+
+menu=$(printf 'Disconnect\nDisable Wi-Fi\nRefresh networks\n%s\n' "$notification_action"
+    [ -z "$vpn_action" ] || printf '%s\n' "$vpn_action"
+    printf '%s\n' "${labels[@]}" "${vpn_labels[@]}")
 choice=$(printf '%s' "$menu" | "${rofi_menu[@]}") || exit 0
 
+for i in "${!vpn_labels[@]}"; do
+    [ "$choice" = "${vpn_labels[$i]}" ] || continue
+    vpns_down
+    # The marker shows whether this one was active: if so, turning it off was the request.
+    case "$choice" in "●"*) exit 0 ;; esac
+    if ! output=$(nmcli --wait 60 connection up "${vpn_uuids[$i]}" 2>&1); then
+        show_error "Could not connect VPN\n\n$output"
+        exit 1
+    fi
+    exit 0
+done
+
 case "$choice" in
+    "Turn off VPN")
+        vpns_down
+        exit
+        ;;
     "Refresh networks")
         exec "$0" --refresh
         ;;
